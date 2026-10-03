@@ -16,7 +16,7 @@ Project docs are in Japanese (`docs/`); code, comments and commit messages are i
 ## Layout
 
 ```
-src/engine/      Engine (render loop, fail-safe hot swap, finishing pass), Clock, GLSL prelude, passes
+src/engine/      DeckEngine (two decks, takes, master FX, panic, fail-safe hot swap, finishing pass), Clock, GLSL prelude, passes
 src/audio/       AudioEngine (mic / file), Analyzer (bands, onsets), BeatTracker
 src/control/     Control window (dev UI)
 src/output/      Output window (projector / external display), driven over BroadcastChannel
@@ -78,7 +78,8 @@ Rules:
   `uBeat`/`uBar` are 0..1 phases; `uBeats` is the continuous beat count; audio values are 0..1 envelopes.
   `uTension` rises slowly through breakdowns/builds; `uDrop` is an envelope (1 → 0 over ~2 s) fired when the kick returns
   after a build or when the performer hits DROP. The clock knows where the next beat is: `1.0 - uBeat` is the time to it.
-- Fullscreen fragment shaders receive `varying vec2 vUv;` (0..1). Write `gl_FragColor`. `texture2D` and `texture` both work (three.js compiles as GLSL ES 3.00).
+- Fullscreen fragment shaders must declare `varying vec2 vUv;` (0..1) themselves — the prelude does not. Write `gl_FragColor`. `texture2D` and `texture` both work (three.js compiles as GLSL ES 3.00).
+- GLSL is compiled at runtime in the browser, not by `tsc`. Copy the plumbing of an existing work (`works/moonsea`, `works/ink-tide`) instead of inventing it. Works made from the Studio are compiled in the live preview when the agent finishes; errors come back as an automatic repair request.
 - Shared chunks: `#include <shiki_noise>` (`hash11 hash12 hash22 snoise(vec3) fbm(vec3) curl2(vec2,float)`), `#include <shiki_color>` (`srgb() aces() luma()`).
 - Helpers in `src/engine/passes.ts`: `FullscreenPass`, `PingPong` (feedback), `createTarget`, `CopyPass`.
 

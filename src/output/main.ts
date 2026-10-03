@@ -1,4 +1,4 @@
-import { Engine } from '../engine/Engine';
+import { DeckEngine } from '../engine/DeckEngine';
 import { openBridge } from '../bridge';
 import { loadWorks, onWorksChanged } from '../works/registry';
 import { SILENT } from '../engine/types';
@@ -11,21 +11,32 @@ let list: InstrumentModule[] = (await loadWorks()).works;
 let latest: LiveSignals = { ...SILENT };
 let lastState = 0;
 
-const engine = new Engine({
+// Mirrors the control window: same works per deck, same knobs, same take schedule, FX and panic state.
+const engine = new DeckEngine({
   canvas,
   maxPixelRatio: 2,
-  onError: (msg, id) => console.warn(`[shiki] ${id}: ${msg}`),
+  onError: (msg, id, deck) => console.warn(`[shiki] ${deck} ${id}: ${msg}`),
 });
 engine.signals = () => latest;
+
+const find = (id: string | null) => (id ? list.find((x) => x.manifest.id === id) : undefined);
 
 const bridge = openBridge((m) => {
   if (m.t !== 'state') return;
   lastState = performance.now();
-  if (m.workId && m.workId !== engine.workId) {
-    const w = list.find((x) => x.manifest.id === m.workId);
-    if (w) engine.load(w, { keepKnobs: true });
+  for (const deck of ['A', 'B'] as const) {
+    const want = m.decks[deck];
+    if (want.workId && want.workId !== engine.workId(deck)) {
+      const w = find(want.workId);
+      if (w) engine.load(deck, w, { keepKnobs: true });
+    }
+    engine.knobs[deck].set(want.knobs.slice(0, engine.knobs[deck].length));
   }
-  engine.knobs.set(m.knobs.slice(0, engine.knobs.length));
+  if (m.safeId && m.safeId !== engine.workId('safe')) {
+    const w = find(m.safeId);
+    if (w) engine.setSafe(w);
+  }
+  engine.applySync(m.sync);
   latest = m.signals;
   engine.exposure = m.exposure;
 });
@@ -33,8 +44,12 @@ bridge.send({ t: 'hello' });
 
 onWorksChanged(({ works: fresh }) => {
   list = fresh;
-  const w = fresh.find((x) => x.manifest.id === engine.workId);
-  if (w) engine.load(w, { keepKnobs: true });
+  for (const deck of ['A', 'B'] as const) {
+    const w = find(engine.workId(deck));
+    if (w) engine.load(deck, w, { keepKnobs: true });
+  }
+  const safe = find(engine.workId('safe'));
+  if (safe) engine.setSafe(safe);
 });
 
 engine.start();

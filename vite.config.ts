@@ -5,6 +5,7 @@ import { execFile } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { agentBridge } from './tools/agent-bridge';
 
 const path = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 const run = promisify(execFile);
@@ -91,7 +92,7 @@ function agentEyes(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [agentEyes()],
+  plugins: [agentEyes(), agentBridge()],
   // No error overlay: a broken work must never cover the output. Errors go to the control window's panel.
   server: { port: 5173, strictPort: true, hmr: { overlay: false } },
   build: {

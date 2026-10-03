@@ -14,5 +14,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "works", "vite.config.ts"]
+  "include": ["src", "works", "tools/agent-bridge", "vite.config.ts"]
 }

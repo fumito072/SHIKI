@@ -42,3 +42,22 @@ Codex は担当ファイル以外を触らない。ほかに変更が必要な�
 
 補足：インストール済みの Codex CLI（0.159.2）には `codex mcp-server` がないため、ユーザー全体の設定
 （`~/.claude.json` の `codex`）は接続に失敗する。このプロジェクトでは `shiki-codex` を使う。
+
+## Studio から呼ぶエージェント（agent bridge）
+
+操作画面の Studio タブは `tools/agent-bridge/index.ts`（Vite の開発サーバーのプラグイン）を通して、
+ユーザーのサブスクで動く CLI を起動する。API キーの環境変数（`ANTHROPIC_*`、`OPENAI_API_KEY`）は外して起動する。
+
+| | Claude Code | Codex |
+|---|---|---|
+| 起動 | `claude -p … --model <ID> --effort <e> --output-format stream-json --permission-mode acceptEdits` | `codex exec -m <slug> -c model_reasoning_effort=<e> --json -s workspace-write [-i 画面]` |
+| 使える道具 | Read / Edit / Write / Glob / Grep、`npx tsc`、`npx vitest` | 作業フォルダ内の読み書きとコマンド |
+| モデル | Fable 5.1 / Opus 5.5 / Sonnet 5.5 / Haiku 4.5 | `codex debug models` の一覧（表示対象のもの） |
+
+- 1作品につき同時に1件。FB の前に `works/<id>/` を `.agents/history/<id>/<日時>/` に保存する（Versions の「戻す」で復元）
+- 指示文は AGENTS.md、docs/philosophy.md、docs/taste.md、works/<id>/NOTES.md を先に読ませ、触ってよいのは対象の作品フォルダだけ
+- 終わったら操作画面が作品を読み込み直して検証し、シェーダーのコンパイルエラーなどはそのまま修復依頼として送り返す（最大2回）
+- 実行記録（添付画像など）は `.agents/studio/<job>/`。git には入れない
+- エンドポイント：`GET /__shiki/agent/options`、`POST /__shiki/agent/run`、`GET /__shiki/agent/events?job=`（SSE）、
+  `POST /__shiki/agent/cancel?job=`、`GET /__shiki/agent/jobs`、`GET /__shiki/history?work=`、`POST /__shiki/history/restore`
+

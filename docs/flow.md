@@ -28,6 +28,14 @@
 - デッキA/B とキュー、小節・フレーズ単位の切り替え、エフェクト、マクロ、MIDI learn、ライブラリ、緊急ボタン
 - **到達点**：複数の作品を切り替えて DJ セットができる
 
+進み具合（2026-10-03）
+- 済：DeckEngine（A/B デッキ、cut / dissolve / luma-wipe / displace / feedback-melt、拍・小節・16/32 小節で量子化した TAKE、
+  Master FX 5種（ストロボは 8Hz 上限）、Black / Freeze / Safe）。操作画面は PGM と A/B プレビューを1枚のキャンバスに描く。
+  出力ウィンドウは同じ状態をミラーする
+- 済（Step 3 を前倒し）：Studio タブ。Claude / Codex（サブスク）をモデルとエフォートを選んで呼び、新作の作成と作品への FB、
+  完了後のプレビュー検証と自動修復、FB 前の版への巻き戻し、好みの記録（docs/taste.md）
+- 残り：MIDI learn と MIDI クロック、Immersive 画面への作り替え、サムネイル付きライブラリと AI の次作品提案、新作 2〜3 本
+
 ## Step 3（M2）— Studio の AI 制作ループ（目安：2週間）
 
 - 最初は Claude Code が制作役：Codex でキービジュアル候補 → 解析 → 動きの試作6案 → 楽器にする
