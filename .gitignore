@@ -6,3 +6,5 @@ coverage/
 .env
 .env.*
 .DS_Store
+.agents/
+public/test/

@@ -1,0 +1,30 @@
+{
+  "name": "shiki",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "式・色・四季。VJ・リアルタイム映像クリエイターのための道具箱。",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "gen:testtrack": "node tools/gen-testtrack.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fumito072/SHIKI.git"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/three": "^0.186.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7"
+  }
+}

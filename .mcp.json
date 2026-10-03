@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "shiki-codex": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["tools/codex-mcp/server.mjs"]
+    }
+  }
+}

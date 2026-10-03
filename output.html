@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SHIKI — output</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    #hint {
+      position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%);
+      font: 12px/1.6 "Martian Mono", ui-monospace, monospace; letter-spacing: .08em;
+      color: #ece6da; background: rgba(8, 10, 12, .6); padding: 8px 14px; border-radius: 4px;
+      transition: opacity .6s; pointer-events: none;
+    }
+    #hint.gone { opacity: 0; }
+    body.idle { cursor: none; }
+  </style>
+</head>
+<body>
+  <canvas id="out"></canvas>
+  <div id="hint">ダブルクリック または F で全画面 · 操作は control ウィンドウで</div>
+  <script type="module" src="/src/output/main.ts"></script>
+</body>
+</html>
