@@ -1,24 +1,35 @@
 import type { InstrumentModule } from '../engine/types';
 
-type Listener = (works: InstrumentModule[]) => void;
+export interface LoadResult {
+  works: InstrumentModule[];
+  /** Works that failed to load (syntax error, missing file …). The rest keep running. */
+  errors: { id: string; error: string }[];
+}
 
-const modules = import.meta.glob<{ default: InstrumentModule }>('../../works/*/index.ts', { eager: true });
+type Listener = (result: LoadResult) => void;
 
-/** Every work in works/<id>/ (folders starting with "_" are skipped), sorted by name. */
-export const works: InstrumentModule[] = Object.entries(modules)
-  .filter(([path]) => !/\/works\/_/.test(path))
-  .map(([, m]) => m.default)
-  .sort((a, b) => a.manifest.name.localeCompare(b.manifest.name));
+const loaders = import.meta.glob<{ default: InstrumentModule }>('../../works/*/index.ts');
 
-export function findWork(id: string | null | undefined): InstrumentModule | undefined {
-  return works.find((w) => w.manifest.id === id);
+/** Loads every work in works/<id>/ independently (folders starting with "_" are skipped), sorted by name. */
+export async function loadWorks(): Promise<LoadResult> {
+  const entries = Object.entries(loaders).filter(([path]) => !/\/works\/_/.test(path));
+  const settled = await Promise.allSettled(entries.map(([, load]) => load()));
+  const works: InstrumentModule[] = [];
+  const errors: LoadResult['errors'] = [];
+  settled.forEach((r, i) => {
+    const id = entries[i][0].replace(/^.*\/works\/([^/]+)\/index\.ts$/, '$1');
+    if (r.status === 'fulfilled' && r.value?.default?.manifest) works.push(r.value.default);
+    else errors.push({ id, error: r.status === 'rejected' ? String(r.reason) : 'no default export' });
+  });
+  works.sort((a, b) => a.manifest.name.localeCompare(b.manifest.name));
+  return { works, errors };
 }
 
 // Listeners survive hot updates of this module through hot.data.
 const listeners: Set<Listener> = import.meta.hot?.data.listeners ?? new Set<Listener>();
 if (import.meta.hot) import.meta.hot.data.listeners = listeners;
 
-/** Called with the fresh list whenever a work's code or shader changes (Vite HMR). */
+/** Called with a fresh load whenever a work's code or shader changes (Vite HMR). */
 export function onWorksChanged(fn: Listener): () => void {
   listeners.add(fn);
   return () => listeners.delete(fn);
@@ -26,7 +37,7 @@ export function onWorksChanged(fn: Listener): () => void {
 
 if (import.meta.hot) {
   import.meta.hot.accept((next) => {
-    const fresh = (next as { works?: InstrumentModule[] } | undefined)?.works;
-    if (fresh) for (const fn of listeners) fn(fresh);
+    const load = (next as { loadWorks?: () => Promise<LoadResult> } | undefined)?.loadWorks;
+    if (load) void load().then((res) => listeners.forEach((fn) => fn(res)));
   });
 }

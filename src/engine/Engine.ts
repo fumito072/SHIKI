@@ -171,6 +171,11 @@ export class Engine {
     this.renderer.dispose();
   }
 
+  /** Render one frame at `now` (ms) outside the rAF loop — used for deterministic offline capture. */
+  renderAt(now: number): void {
+    this.tick(now);
+  }
+
   private tick(now: number): void {
     const dt = Math.min(0.1, Math.max(0, (now - this.last) / 1000));
     this.last = now;

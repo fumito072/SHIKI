@@ -2,7 +2,7 @@ import type { WebGLRenderer, WebGLRenderTarget } from 'three';
 
 export const MAX_MACROS = 8;
 
-export type SignalId = 'low' | 'mid' | 'high' | 'level' | 'onset' | 'kick' | 'beat' | 'bar';
+export type SignalId = 'low' | 'mid' | 'high' | 'level' | 'onset' | 'kick' | 'beat' | 'bar' | 'tension' | 'drop';
 
 export interface MacroDef {
   /** lower_snake id; becomes `M_<ID>` in GLSL. */
@@ -43,6 +43,10 @@ export interface LiveSignals {
   onset: number;
   /** 0..1 envelope on low-band transients. */
   kick: number;
+  /** 0..1, rises slowly through breakdowns and builds (kick gone, energy climbing). */
+  tension: number;
+  /** 0..1 envelope fired when the kick returns after a build (or by the performer's DROP). */
+  drop: number;
 }
 
 export interface Signals extends LiveSignals {
@@ -79,7 +83,7 @@ export interface InstrumentModule {
 }
 
 export const SILENT: LiveSignals = {
-  bpm: 120, beat: 0, bar: 0, beats: 0, low: 0, mid: 0, high: 0, level: 0, onset: 0, kick: 0,
+  bpm: 120, beat: 0, bar: 0, beats: 0, low: 0, mid: 0, high: 0, level: 0, onset: 0, kick: 0, tension: 0, drop: 0,
 };
 
 export function defineInstrument(m: InstrumentModule): InstrumentModule {

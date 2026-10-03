@@ -3,8 +3,10 @@ import { Engine } from '../engine/Engine';
 import { Clock } from '../engine/Clock';
 import { AudioEngine } from '../audio/AudioEngine';
 import { BeatTracker } from '../audio/BeatTracker';
+import { Choreography } from '../audio/Choreography';
 import { openBridge } from '../bridge';
-import { onWorksChanged, works } from '../works/registry';
+import { loadWorks, onWorksChanged } from '../works/registry';
+import type { LoadResult } from '../works/registry';
 import { SILENT } from '../engine/types';
 import type { InstrumentModule, LiveSignals } from '../engine/types';
 
@@ -30,10 +32,11 @@ function h<K extends keyof HTMLElementTagNameMap>(
 }
 
 // ---------- state ----------
-let list: InstrumentModule[] = works;
+let list: InstrumentModule[] = [];
 const clock = new Clock();
 const audio = new AudioEngine();
 const tracker = new BeatTracker();
+const choreo = new Choreography();
 let latest: LiveSignals = { ...SILENT };
 let lastNow = performance.now();
 let output = { seen: 0, fps: 0, w: 0, h: 0 };
@@ -61,9 +64,11 @@ engine.signals = (now) => {
   if (audio.mode !== 'off') tracker.push(a.flux, now);
   clock.followAudio(tracker.estimate(), now);
   const c = clock.state(now);
+  const ch = choreo.step(a, dt);
   latest = {
     bpm: c.bpm, beat: c.beat, bar: c.bar, beats: c.beats,
     low: a.low, mid: a.mid, high: a.high, level: a.level, onset: a.onset, kick: a.kick,
+    tension: ch.tension, drop: ch.drop,
   };
   bridge.send({ t: 'state', workId: engine.workId, knobs: Array.from(engine.knobs), signals: latest, exposure: engine.exposure });
   return latest;
@@ -82,7 +87,7 @@ const clockSrcEl = h('span', { class: 'lbl' });
 const beatsEl = h('div', { class: 'beats' }, h('i'), h('i'), h('i'), h('i'));
 const followBtn = h('button', { class: 'btn', type: 'button', onclick: () => toggleFollow() }, 'Audio follow');
 const audioLabel = h('span', { class: 'note' });
-const meterNames = ['low', 'mid', 'high', 'onset', 'kick'] as const;
+const meterNames = ['low', 'mid', 'high', 'onset', 'kick', 'tension', 'drop'] as const;
 const meterBars = meterNames.map(() => h('i'));
 const errorsEl = h('div', { class: 'errors' });
 const fileInput = h('input', { type: 'file', accept: 'audio/*', style: 'display:none', onchange: () => void pickFile() });
@@ -102,7 +107,7 @@ app.append(
     h('div', { class: 'stage' },
       preview,
       h('div', { class: 'meta' },
-        h('span', { class: 'keys' }, 'SPACE tap · ←/→ nudge · ↑/↓ bpm · D downbeat · 1–9 work · O output'),
+        h('span', { class: 'keys' }, 'SPACE tap · ←/→ nudge · ↑/↓ bpm · D downbeat · hold B build · ⏎ drop · 1–9 work · O output'),
       ),
     ),
     h('aside', {},
@@ -123,6 +128,15 @@ app.append(
           h('button', { class: 'btn', type: 'button', onclick: () => clock.downbeat() }, '1'),
         ),
         h('div', { class: 'row' }, followBtn),
+        h('div', { class: 'row' },
+          h('button', {
+            class: 'btn wide', type: 'button',
+            onpointerdown: () => { choreo.building = true; },
+            onpointerup: () => { choreo.building = false; },
+            onpointerleave: () => { choreo.building = false; },
+          }, 'Build (hold B)'),
+          h('button', { class: 'btn live wide', type: 'button', onclick: () => choreo.fire() }, 'Drop ⏎'),
+        ),
       ),
       h('section', { class: 'box' },
         h('span', { class: 'lbl' }, 'Audio'),
@@ -205,13 +219,16 @@ function renderMacros() {
   );
 }
 
-onWorksChanged((fresh) => {
-  list = fresh;
-  const w = fresh.find((x) => x.manifest.id === engine.workId) ?? fresh[0];
+function applyWorks(res: LoadResult) {
+  list = res.works;
+  for (const e of res.errors) pushError(e.id, `読み込めません（ほかの作品は動き続けます）\n${e.error}`);
+  const w = list.find((x) => x.manifest.id === engine.workId) ?? list[0];
   if (w) engine.load(w);
   renderWorks();
   renderMacros();
-});
+}
+
+onWorksChanged(applyWorks);
 
 // ---------- audio & clock ----------
 async function useMic() {
@@ -274,6 +291,8 @@ window.addEventListener('keydown', (e) => {
     case 'ArrowUp': e.preventDefault(); clock.setBpm(clock.bpm + (big ? 5 : 0.5)); break;
     case 'ArrowDown': e.preventDefault(); clock.setBpm(clock.bpm - (big ? 5 : 0.5)); break;
     case 'd': case 'D': clock.downbeat(); break;
+    case 'Enter': e.preventDefault(); choreo.fire(); break;
+    case 'b': case 'B': choreo.building = true; break;
     case 'o': case 'O': openOutput(); break;
     default:
       if (/^[1-9]$/.test(e.key)) {
@@ -281,6 +300,10 @@ window.addEventListener('keydown', (e) => {
         if (w) selectWork(w);
       }
   }
+});
+
+window.addEventListener('keyup', (e) => {
+  if (e.key === 'b' || e.key === 'B') choreo.building = false;
 });
 
 // ---------- UI loop ----------
@@ -315,10 +338,72 @@ async function snap(name = 'snap', quality = 0.9): Promise<string> {
   return ((await res.json()) as { file: string }).file;
 }
 
+/** Records `seconds` of the preview to .agents/clips/<name>.mp4 (+ a contact sheet) via the dev server. */
+async function record(name = 'clip', seconds = 8): Promise<{ mp4: string; sheet: string }> {
+  const stream = preview.captureStream(30);
+  const rec = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 16_000_000 });
+  const chunks: Blob[] = [];
+  rec.ondataavailable = (e) => chunks.push(e.data);
+  const stopped = new Promise<void>((done) => (rec.onstop = () => done()));
+  rec.start(250);
+  await new Promise((r) => setTimeout(r, seconds * 1000));
+  rec.stop();
+  await stopped;
+  stream.getTracks().forEach((t) => t.stop());
+  const res = await fetch(`/__shiki/clip?name=${encodeURIComponent(name)}`, {
+    method: 'POST',
+    body: new Blob(chunks, { type: 'video/webm' }),
+  });
+  return (await res.json()) as { mp4: string; sheet: string };
+}
+
+/**
+ * Deterministic offline capture: renders `seconds` at a fixed `fps` with scripted signals
+ * (128 BPM groove → build from `buildAt` with rising tension → drop at `dropAt`), independent of
+ * tab visibility or real-time speed. Frames go to .agents/frames/<name>/, the result to .agents/clips/<name>.mp4.
+ */
+async function offline(opts: { name?: string; seconds?: number; fps?: number; buildAt?: number; dropAt?: number } = {}) {
+  const { name = 'offline', seconds = 14, fps = 30, buildAt = 3, dropAt = 9 } = opts;
+  const bpm = 128;
+  const beatS = 60 / bpm;
+  const saved = engine.signals;
+  engine.stop();
+  const t0 = performance.now();
+  let frameTime = t0;
+  engine.signals = () => {
+    const t = (frameTime - t0) / 1000;
+    const beats = t / beatS;
+    const building = t >= buildAt && t < dropAt;
+    const sinceBeat = (beats % 1) * beatS;
+    const kick = building ? 0 : Math.exp(-sinceBeat / 0.14);
+    return {
+      bpm, beats, beat: beats % 1, bar: (beats / 4) % 1,
+      low: building ? 0.25 : 0.55 + 0.35 * kick, mid: 0.4, high: building ? 0.3 + 0.6 * (t - buildAt) / (dropAt - buildAt) : 0.35,
+      level: 0.6, onset: kick, kick,
+      tension: building ? Math.min(1, (t - buildAt) / (dropAt - buildAt)) : 0,
+      drop: t >= dropAt ? Math.exp(-(t - dropAt) / 2.2) : 0,
+    };
+  };
+  try {
+    const total = Math.round(seconds * fps);
+    for (let i = 0; i < total; i++) {
+      frameTime = t0 + (i * 1000) / fps;
+      engine.renderAt(frameTime);
+      const jpeg = preview.toDataURL('image/jpeg', 0.9);
+      await fetch(`/__shiki/frame?name=${encodeURIComponent(name)}&i=${i}`, { method: 'POST', body: jpeg });
+    }
+  } finally {
+    engine.signals = saved;
+    engine.start();
+  }
+  const res = await fetch(`/__shiki/encode?name=${encodeURIComponent(name)}&fps=${fps}`);
+  return (await res.json()) as { mp4: string; sheet: string };
+}
+
 if (import.meta.env.DEV) {
   Object.assign(window, {
     __shiki: {
-      engine, clock, audio, tracker, snap,
+      engine, clock, audio, tracker, choreo, snap, record, offline,
       select: (id: string) => { const w = list.find((x) => x.manifest.id === id); if (w) selectWork(w); return engine.workId; },
       setKnob: (id: string, v: number) => {
         const i = engine.manifest?.macros.findIndex((m) => m.id === id) ?? -1;
@@ -331,6 +416,9 @@ if (import.meta.env.DEV) {
 }
 
 // ---------- start ----------
+const initial = await loadWorks();
+for (const e of initial.errors) pushError(e.id, `読み込めません（ほかの作品は動き続けます）\n${e.error}`);
+list = initial.works;
 renderWorks();
 const first = list.find((w) => w.manifest.id === 'moonsea') ?? list[0];
 if (first) selectWork(first);

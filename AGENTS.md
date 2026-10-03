@@ -65,19 +65,36 @@ export default defineInstrument({
 Rules:
 
 - `render(frame, target)` must fully draw `target` every frame (a HalfFloat render target). Output **linear HDR** color; the engine applies exposure, ACES tone mapping, vignette, grain and sRGB encoding afterwards. Palette hex values are sRGB: convert with `srgb()` from `<shiki_color>`.
-- Up to 8 macros, values 0..1. `mod` adds `signal * amount` on top of the knob. Signals: `low mid high level onset kick beat bar`.
-- Time comes only from uniforms (`uTime`, `uBeats` …). Never use `Date.now()`/`performance.now()` inside a work; the same frame inputs must give the same image (the output window re-renders from the same state).
+- Up to 8 macros, values 0..1. `mod` adds `signal * amount` on top of the knob. Signals: `low mid high level onset kick beat bar tension drop`.
+- Time comes only from uniforms and `frame.signals` (`uTime`, `uBeats`, `dt` …). Never use `Date.now()`/`performance.now()` inside a work.
+- Stateful simulations (feedback, fluids, accumulated clocks) are welcome. The output window runs its own instance from the same signals, so small divergence between preview and output is acceptable; the output is the master.
 - Allocate GPU resources in `create`, release all of them in `dispose`. Implement `resize(w, h)` if you own size-dependent targets.
 - Budget: 60 fps at 1920×1080 on Apple Silicon, with headroom (one instrument may run in two windows).
 
 ### Shader conventions
 
 - `shaderPrelude(manifest)` declares the standard uniforms and one `#define M_<ID> uMacro[i]` per macro (`energy` → `M_ENERGY`).
-- Standard uniforms: `uTime uResolution uFrame uBpm uBeat uBar uBeats uLow uMid uHigh uLevel uOnset uKick uMacro[8]`.
+- Standard uniforms: `uTime uResolution uFrame uBpm uBeat uBar uBeats uLow uMid uHigh uLevel uOnset uKick uTension uDrop uMacro[8]`.
   `uBeat`/`uBar` are 0..1 phases; `uBeats` is the continuous beat count; audio values are 0..1 envelopes.
+  `uTension` rises slowly through breakdowns/builds; `uDrop` is an envelope (1 → 0 over ~2 s) fired when the kick returns
+  after a build or when the performer hits DROP. The clock knows where the next beat is: `1.0 - uBeat` is the time to it.
 - Fullscreen fragment shaders receive `varying vec2 vUv;` (0..1). Write `gl_FragColor`. `texture2D` and `texture` both work (three.js compiles as GLSL ES 3.00).
 - Shared chunks: `#include <shiki_noise>` (`hash11 hash12 hash22 snoise(vec3) fbm(vec3) curl2(vec2,float)`), `#include <shiki_color>` (`srgb() aces() luma()`).
 - Helpers in `src/engine/passes.ts`: `FullscreenPass`, `PingPong` (feedback), `createTarget`, `CopyPass`.
+
+### Artistic intent (read docs/philosophy.md — it overrides polish)
+
+The user's aim: **maximize the gap between what the brain predicts and what the retina receives, so the brain glitches;
+destroy the boundary lines of our world.** Consequences for every work:
+
+- Never just vibrate with the audio. Amplitude jitter is predictable and boring. Audio drives **choreography**:
+  tension → release, deformation with inertia (stretch, overshoot, settle), afterglow.
+- Build a learnable regularity first, then violate it at musical moments (`uDrop`, phrase starts) — briefly and locally,
+  or the brain re-learns the new rule.
+- Prediction-error devices: anticipation (move just *before* the beat), time reversal (unmixing, ripples converging),
+  impossible physics (liquid rising against gravity), reflections that disagree with their source, figure/ground or
+  inside/outside inversion, motion aftereffect (long steady flow then a sudden stop), dissolving boundaries.
+- Stillness is a weapon: the error is largest after calm.
 
 ### Taste rules (do not break)
 

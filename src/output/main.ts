@@ -1,13 +1,13 @@
 import { Engine } from '../engine/Engine';
 import { openBridge } from '../bridge';
-import { onWorksChanged, works } from '../works/registry';
+import { loadWorks, onWorksChanged } from '../works/registry';
 import { SILENT } from '../engine/types';
 import type { InstrumentModule, LiveSignals } from '../engine/types';
 
 const canvas = document.getElementById('out') as HTMLCanvasElement;
 const hint = document.getElementById('hint') as HTMLDivElement;
 
-let list: InstrumentModule[] = works;
+let list: InstrumentModule[] = (await loadWorks()).works;
 let latest: LiveSignals = { ...SILENT };
 let lastState = 0;
 
@@ -31,7 +31,7 @@ const bridge = openBridge((m) => {
 });
 bridge.send({ t: 'hello' });
 
-onWorksChanged((fresh) => {
+onWorksChanged(({ works: fresh }) => {
   list = fresh;
   const w = fresh.find((x) => x.manifest.id === engine.workId);
   if (w) engine.load(w, { keepKnobs: true });

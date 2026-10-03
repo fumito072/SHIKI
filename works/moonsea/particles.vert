@@ -1,66 +1,76 @@
-// MOONSEA — a breaking wave of silver particles travelling left to right.
+// MOONSEA — the sea, pulled up by the moon. Droplets leave the water and fall *upward*;
+// with tension they braid into a few wandering strands; on the drop time stops, then they are flung around the moon.
 attribute float aSeed;
 varying float vBright;
-varying float vWarm;
-
-#include <shiki_noise>
 
 void main() {
   float aspect = uResolution.x / uResolution.y;
-  float s0 = position.x;   // along the wave
-  float o = position.y;    // across the thickness
-  float r = position.z;    // size / depth / spray
+  vec2 m = moonAt(uBeats, aspect);
+  float s0 = position.x; // across the sea
+  float o = position.y;  // depth on the water plane
+  float r = position.z;  // size / role
 
-  // Density: hide a share of the cloud.
-  float keep = step(aSeed, 0.12 + 0.88 * M_DENSITY);
+  vec2 p;
+  float b;
+  float keep;
 
-  // Flow along the wave.
-  float speed = mix(0.006, 0.045, M_DRIFT) * (0.6 + 0.8 * r);
-  float s = fract(s0 + uTime * speed);
+  if (r > 0.9975) {
+    // The beat spout: a few droplets thrown up from where the omen rings converged — each on its own arc.
+    float n = floor(uBeats);
+    float age = fract(uBeats);
+    vec2 src = worldToScreen(rippleSource(n, m));
+    float a = (hash11(aSeed * 91.7 + n) * 2.0 - 1.0);
+    float v = 0.3 + 0.7 * hash11(aSeed * 17.3 + n * 0.37);
+    float t = max(age - 0.12 * hash11(aSeed * 3.7 + n), 0.0);
+    float rise = (1.0 - exp(-t * 3.0)) * v * 0.3 * (0.6 + M_ENERGY);
+    p = src + vec2(a * (0.03 + 0.25 * rise) + 0.04 * sin(aSeed * 40.0), rise);
+    b = (1.0 - age) * 0.5 * M_OMEN * smoothstep(0.0, 0.05, t);
+    keep = step(0.4, hash11(aSeed * 7.7 + n));
+  } else {
+    float pull = clamp(M_PULL * (0.25 + uTide), 0.0, 1.0);
+    keep = step(aSeed, 0.06 + 0.94 * clamp(M_DRIZZLE + 0.3 * uTide, 0.0, 0.65));
 
-  // Wave spine: born low on the water at the left, sweeping up into a curling crest on the right.
-  float lift = smoothstep(0.05, 0.92, s);
-  float energy = 0.55 + 0.75 * M_ENERGY + 0.25 * uKick;
-  float x = mix(-1.25, 1.25, s) * aspect;
-  float rise = pow(lift, 2.2) * 0.95 * energy;
-  float y = -0.31 + rise * 0.8 + 0.06 * sin(s * 6.0 - uTime * 0.5) * (0.4 + lift);
-  // The crest folds forward over itself near the right edge.
-  float fold = smoothstep(0.7, 1.0, s);
-  x -= fold * fold * 0.25 * aspect * energy;
-  y += fold * 0.12 * energy;
+    float period = mix(5.5, 2.4, uTide);
+    float age = fract(uPClock / period + aSeed * 7.13);
+    float h = age * age * (0.55 + 0.95 * uTide) * (0.5 + M_ENERGY) * 1.35;
+    float y0 = HORIZON - mix(0.55, 0.01, sqrt(o));
 
-  // A body, not a line: gaussian-ish spread, wide everywhere, widest at the crest.
-  float n = o * 2.0 - 1.0;
-  float spread = n * (0.55 + 0.45 * abs(n));
-  float thick = mix(0.06, 0.26, lift) * (0.75 + 0.5 * uLow);
-  y += spread * thick;
-  x -= spread * thick * 0.6;
+    // Calm: droplets leave the whole sea. Tide: they braid into a few strands that wander as they climb.
+    float strand = floor(s0 * 5.0);
+    float u = fract(s0 * 5.0) * 2.0 - 1.0;
+    float wander = snoise(vec3(strand * 7.1, h * 2.2 - uPClock * 0.35, 0.5)) * 0.12
+                 + sin(h * 6.0 - uPClock * 1.3 + strand * 2.1) * 0.045;
+    float colX = wander + u * u * u * 0.012 * (1.0 + 2.0 * h);
+    // Calm spread: dense under the moon, thinning out toward the edges of the sea (no hard edges).
+    float c = s0 * 2.0 - 1.0;
+    float calmX = sign(c) * pow(abs(c), 1.35) * 1.15 * aspect + (hash11(aSeed * 13.1) - 0.5) * 0.16;
+    p = vec2(m.x + mix(calmX, colX, pull) + sin(uPClock * 0.6) * 0.04 * uTide, y0 + h);
+    // Near the moon the strands lean into its centre.
+    p.x = mix(p.x, m.x + (p.x - m.x) * 0.5, smoothstep(0.3, 1.0, age) * pull * 0.6);
 
-  // Turbulence that tears the body into strands.
-  vec3 q = vec3(x * 1.2, y * 1.6, uTime * 0.07 + r * 0.25);
-  vec2 d = vec2(snoise(q), snoise(q + vec3(17.3, -9.1, 4.7)));
-  vec2 d2 = vec2(snoise(q * 3.1 + 5.0), snoise(q * 3.1 - 11.0));
-  x += (d.x * 0.08 + d2.x * 0.025) * (0.4 + M_ENERGY);
-  y += (d.y * 0.06 + d2.y * 0.02) * (0.4 + M_ENERGY);
+    // Turbulence grows as the droplets near the moon: the strands fray before they arrive.
+    float fray = 0.5 + uTide + 2.5 * smoothstep(0.55, 1.0, age) * pull;
+    vec3 q = vec3(p * 1.5, uPClock * 0.05 + r * 3.0);
+    p += vec2(snoise(q), snoise(q + 11.0)) * 0.028 * fray;
 
-  // Spray thrown above the crest.
-  float sprayShare = 0.35 * M_SPRAY;
-  float isSpray = step(1.0 - sprayShare, r) * smoothstep(0.45, 0.8, s);
-  float age = fract(r * 13.7 + uTime * 0.18);
-  y += isSpray * (age * age * 0.45 + 0.05) * energy;
-  x += isSpray * age * 0.22;
+    // After the freeze: flung around the moon in curved paths.
+    if (uBurst > 0.001) {
+      vec2 d = p - m;
+      float ang = uBurst * (1.2 + 1.8 * r) * (hash11(aSeed * 5.1) > 0.5 ? 1.0 : -1.0);
+      float cs = cos(ang), sn = sin(ang);
+      d = mat2(cs, -sn, sn, cs) * d * (1.0 + uBurst * (0.6 + 1.4 * r));
+      p = m + d;
+    }
 
-  // Brightness: dim and sparse where the wave is born, brightest at the crest, core denser than edges.
-  float ends = smoothstep(0.0, 0.22, s) * (1.0 - smoothstep(0.94, 1.0, s));
-  float core = 1.0 - 0.55 * abs(n);
-  float b = mix(0.35, 1.0, r) * (0.25 + 0.75 * lift) * ends * core;
-  b *= 0.75 + 0.25 * sin(uTime * 2.3 + aSeed * 61.0);
-  b += step(0.985, fract(aSeed * 91.7 + uTime * 0.37)) * (0.6 + 2.0 * uHigh) * lift;
-  b *= mix(1.0, 1.0 - age, isSpray);
-  vBright = b * keep;
-  vWarm = step(0.995, aSeed);
+    float fade = smoothstep(0.0, 0.08, age) * (1.0 - smoothstep(0.72, 1.0, age));
+    float moonlight = exp(-length(p - m) * 1.3);
+    float core = mix(1.0, 1.0 - 0.75 * abs(u), pull);
+    b = fade * core * (0.35 + 1.4 * moonlight) * mix(0.5, 1.0, r) * (1.2 + 1.2 * uTide + 1.5 * uBurst);
+    b *= (1.0 - 0.45 * o) * mix(1.0, 0.3, pull);
+  }
 
-  float size = (0.9 + 2.4 * r * r) * (uResolution.y / 1080.0);
+  vBright = b * keep * (r > 0.9975 ? 1.0 : uVis);
+  float size = (0.8 + 2.1 * r * r) * (1.0 - 0.45 * o) * (uResolution.y / 1080.0);
   gl_PointSize = keep > 0.5 ? size : 0.0;
-  gl_Position = vec4(x / aspect, y, 0.0, 1.0);
+  gl_Position = vec4(p.x / aspect, p.y, 0.0, 1.0);
 }

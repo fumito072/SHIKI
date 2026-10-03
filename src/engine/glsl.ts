@@ -24,6 +24,8 @@ uniform float uHigh;
 uniform float uLevel;
 uniform float uOnset;
 uniform float uKick;
+uniform float uTension;
+uniform float uDrop;
 uniform float uMacro[${MAX_MACROS}];
 `;
 
@@ -132,6 +134,8 @@ export function stdUniforms() {
     uLevel: { value: 0 },
     uOnset: { value: 0 },
     uKick: { value: 0 },
+    uTension: { value: 0 },
+    uDrop: { value: 0 },
     uMacro: { value: new Float32Array(MAX_MACROS) },
   };
 }
@@ -153,5 +157,7 @@ export function updateStdUniforms(u: StdUniforms, f: Frame): void {
   u.uLevel.value = s.level;
   u.uOnset.value = s.onset;
   u.uKick.value = s.kick;
+  u.uTension.value = s.tension;
+  u.uDrop.value = s.drop;
   u.uMacro.value.set(f.macros);
 }

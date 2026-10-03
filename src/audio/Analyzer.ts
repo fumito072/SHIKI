@@ -41,6 +41,8 @@ class OnsetDetector {
     private readonly k = 1.6,
     private readonly minGap = 0.11,
     private readonly release = 0.16,
+    /** Absolute floor on the (auto-levelled) flux, so quiet passages don't produce onsets from noise. */
+    private readonly minLevel = 0.15,
   ) {}
 
   step(flux: number, dt: number): number {
@@ -57,7 +59,7 @@ class OnsetDetector {
     this.filled = Math.min(this.filled + 1, this.hist.length);
     this.since += dt;
 
-    if (this.filled > 8 && flux > mean + this.k * std + 1e-3 && this.since > this.minGap) {
+    if (this.filled > 8 && flux > this.minLevel && flux > mean + this.k * std + 1e-3 && this.since > this.minGap) {
       this.since = 0;
       this.env = 1;
     } else {
@@ -76,8 +78,10 @@ export class Analyzer {
   private readonly lowEnd: number;
   private readonly levels = { low: new AutoLevel(), mid: new AutoLevel(), high: new AutoLevel(), level: new AutoLevel() };
   private readonly onsets = new OnsetDetector();
-  private readonly kicks = new OnsetDetector(1.4, 0.18, 0.14);
+  // Kicks must reach a third of the recent kick peak: pads and risers in a breakdown are not kicks.
+  private readonly kicks = new OnsetDetector(1.4, 0.18, 0.14, 0.35);
   private readonly fluxLevel = new AutoLevel(4);
+  private readonly lowFluxLevel = new AutoLevel(30);
   private readonly out: AudioFeatures = { low: 0, mid: 0, high: 0, level: 0, onset: 0, kick: 0, flux: 0 };
 
   constructor(binCount: number, sampleRate: number) {
@@ -129,7 +133,10 @@ export class Analyzer {
     o.high = follow(o.high, this.levels.high.norm(high, dt), dt, 0.01, 0.08);
     o.level = follow(o.level, this.levels.level.norm(level, dt), dt, 0.02, 0.25);
     o.onset = this.onsets.step(this.fluxLevel.norm(flux, dt), dt);
-    o.kick = this.kicks.step(lowFlux, dt);
+    // A kick is a transient whose change is dominated by the low band; hats and snares spread across the spectrum.
+    const lowNorm = this.lowFluxLevel.norm(lowFlux, dt);
+    const kickiness = flux > 1e-6 ? lowFlux / flux : 0;
+    o.kick = this.kicks.step(kickiness > 0.12 ? lowNorm : 0, dt);
     o.flux = flux;
     return o;
   }
