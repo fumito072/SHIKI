@@ -49,7 +49,7 @@ export class AudioEngine {
     const { ctx, analyser } = this.ensure();
     await ctx.resume();
     this.stop();
-    const data = typeof file === 'string' ? await (await fetch(file)).arrayBuffer() : await file.arrayBuffer();
+    const data = typeof file === 'string' ? await (await fetch(file, { cache: 'no-store' })).arrayBuffer() : await file.arrayBuffer();
     const buffer = await ctx.decodeAudioData(data);
     const node = ctx.createBufferSource();
     node.buffer = buffer;
