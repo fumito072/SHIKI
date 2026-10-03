@@ -2,6 +2,8 @@ import type { InstrumentModule } from '../engine/types';
 
 export interface LoadResult {
   works: InstrumentModule[];
+  /** Key visual URL per work folder (works/<id>/keyvisual.jpg|png), used as the library thumbnail. */
+  art: Record<string, string>;
   /** Works that failed to load (syntax error, missing file …). The rest keep running. */
   errors: { id: string; error: string }[];
 }
@@ -9,6 +11,7 @@ export interface LoadResult {
 type Listener = (result: LoadResult) => void;
 
 const loaders = import.meta.glob<{ default: InstrumentModule }>('../../works/*/index.ts');
+const artUrls = import.meta.glob<string>('../../works/*/keyvisual.{jpg,png}', { eager: true, query: '?url', import: 'default' });
 
 /** Loads every work in works/<id>/ independently (folders starting with "_" are skipped), sorted by name. */
 export async function loadWorks(): Promise<LoadResult> {
@@ -22,7 +25,9 @@ export async function loadWorks(): Promise<LoadResult> {
     else errors.push({ id, error: r.status === 'rejected' ? String(r.reason) : 'no default export' });
   });
   works.sort((a, b) => a.manifest.name.localeCompare(b.manifest.name));
-  return { works, errors };
+  const art: Record<string, string> = {};
+  for (const [path, url] of Object.entries(artUrls)) art[path.replace(/^.*\/works\/([^/]+)\/keyvisual\.\w+$/, '$1')] = url;
+  return { works, errors, art };
 }
 
 // Listeners survive hot updates of this module through hot.data.

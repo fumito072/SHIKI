@@ -107,6 +107,14 @@ vec3 aces(vec3 x) {
 const chunks = ShaderChunk as unknown as Record<string, string>;
 chunks['shiki_noise'] = NOISE_GLSL;
 chunks['shiki_color'] = COLOR_GLSL;
+// Image helpers for works built from a key visual (see src/engine/assets.ts).
+chunks['shiki_image'] = /* glsl */ `
+// Cover-fit: uv over the canvas (0..1) -> uv inside an image of pixel size img, cropping like CSS object-fit: cover.
+vec2 coverUv(vec2 uv, vec2 res, vec2 img) {
+  float ca = res.x / max(res.y, 1.0), ia = img.x / max(img.y, 1.0);
+  vec2 s = ca > ia ? vec2(1.0, ia / ca) : vec2(ca / ia, 1.0);
+  return (uv - 0.5) * s + 0.5;
+}`;
 
 export function macroDefines(manifest: InstrumentManifest): string {
   return manifest.macros

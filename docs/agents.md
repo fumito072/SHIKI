@@ -65,4 +65,5 @@ Codex は担当ファイル以外を触らない。ほかに変更が必要な�
 - 実行記録（添付画像など）は `.agents/studio/<job>/`。git には入れない
 - エンドポイント：`GET /__shiki/agent/options`、`POST /__shiki/agent/run`、`GET /__shiki/agent/events?job=`（SSE）、
   `POST /__shiki/agent/cancel?job=`、`GET /__shiki/agent/jobs`、`GET /__shiki/history?work=`、`POST /__shiki/history/restore`
-
+- 画像から作る制作工程（キービジュアル → 動きの画像 → 作品）の仕組みは [studio-pipeline.md](studio-pipeline.md)。
+  アートディレクターは読み取り専用で起動し、絵は GPT Image（Codex 経由）と Pinterest LoRA（ローカルの SDXL）が描く

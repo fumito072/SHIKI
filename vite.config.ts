@@ -99,5 +99,5 @@ export default defineConfig({
     target: 'es2022',
     rollupOptions: { input: { control: path('./index.html'), output: path('./output.html') } },
   },
-  test: { include: ['src/**/*.test.ts', 'works/**/*.test.ts'] },
+  test: { include: ['src/**/*.test.ts', 'works/**/*.test.ts', 'tools/**/*.test.ts'] },
 });

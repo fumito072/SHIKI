@@ -82,6 +82,12 @@ Rules:
 - GLSL is compiled at runtime in the browser, not by `tsc`. Copy the plumbing of an existing work (`works/moonsea`, `works/ink-tide`) instead of inventing it. Works made from the Studio are compiled in the live preview when the agent finishes; errors come back as an automatic repair request.
 - Shared chunks: `#include <shiki_noise>` (`hash11 hash12 hash22 snoise(vec3) fbm(vec3) curl2(vec2,float)`), `#include <shiki_color>` (`srgb() aces() luma()`).
 - Helpers in `src/engine/passes.ts`: `FullscreenPass`, `PingPong` (feedback), `createTarget`, `CopyPass`.
+- Images: `src/engine/assets.ts` — `import kv from './keyvisual.jpg'`, `imageTexture(kv)`, `imageSize(tex)`; in GLSL
+  `#include <shiki_image>` gives `coverUv(vUv, uResolution, uKeySize)`. Your shader must declare the image uniforms
+  itself (`uniform sampler2D uKey; uniform vec2 uKeySize;`) — the prelude only declares the standard ones. Works built in the Studio start from their
+  approved key visual (`keyvisual.jpg`) and motion studies (`studies/NN.jpg`, `studies.md`): use the image itself as the
+  material — sample, displace, slice, re-order, decompose by luminance into layers or particles, feed it into feedback —
+  so a still frame reads like the key visual and the motion is the studies'. Do not redraw it from scratch in noise.
 
 ### Artistic intent (read docs/philosophy.md — it overrides polish)
 

@@ -32,9 +32,11 @@
 - 済：DeckEngine（A/B デッキ、cut / dissolve / luma-wipe / displace / feedback-melt、拍・小節・16/32 小節で量子化した TAKE、
   Master FX 5種（ストロボは 8Hz 上限）、Black / Freeze / Safe）。操作画面は PGM と A/B プレビューを1枚のキャンバスに描く。
   出力ウィンドウは同じ状態をミラーする
-- 済（Step 3 を前倒し）：Studio タブ。Claude / Codex（サブスク）をモデルとエフォートを選んで呼び、新作の作成と作品への FB、
-  完了後のプレビュー検証と自動修復、FB 前の版への巻き戻し、好みの記録（docs/taste.md）
-- 残り：MIDI learn と MIDI クロック、Immersive 画面への作り替え、サムネイル付きライブラリと AI の次作品提案、新作 2〜3 本
+- 済（Step 3 を前倒し）：Studio。画像 → 動きの画像（約10案）→ 作品 の順で、各段階に FB。アートディレクターは
+  Claude / Codex（サブスク、モデル・エフォート選択）、絵は GPT Image と Pinterest LoRA。作品は承認済みの画像を素材に作り、
+  プレビューで検証して自動修復。既存作品へのコード FB と版の巻き戻しも残す（2026-10-04）
+- 済：操作画面を Immersive のデザインどおりに作り直し（全面の映像＋ガラスのパネル、回転つまみ、ライブラリのサムネイル）
+- 残り：MIDI learn と MIDI クロック、AI の次作品提案（今は音のエネルギーで候補を出す簡易版）、新作 2〜3 本
 
 ## Step 3（M2）— Studio の AI 制作ループ（目安：2週間）
 

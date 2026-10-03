@@ -1,13 +1,20 @@
-import './control.css';
+import '../../design/tokens/shiki.css';
+import '../../design/tokens/immersive.css';
+import './app.css';
+import './studio.css';
 import { DeckEngine } from '../engine/DeckEngine';
-import type { Deck, MasterFx, Quantize, Rect, Transition } from '../engine/DeckEngine';
+import type { Deck, Rect } from '../engine/DeckEngine';
 import { Clock } from '../engine/Clock';
 import { AudioEngine } from '../audio/AudioEngine';
 import { BeatTracker } from '../audio/BeatTracker';
 import { Choreography } from '../audio/Choreography';
 import { openBridge } from '../bridge';
 import { h } from './dom';
+import { mountPerform } from './perform';
+import type { TakeOpts } from './perform';
 import { mountStudio } from './studio';
+import { agentOptions, loadPrefs, resolvePick, runEdit } from './jobs';
+import type { JobHandle } from './jobs';
 import { loadWorks, onWorksChanged } from '../works/registry';
 import type { LoadResult } from '../works/registry';
 import { SILENT } from '../engine/types';
@@ -16,18 +23,11 @@ import type { InstrumentModule, LiveSignals } from '../engine/types';
 const TEST_TRACK = '/test/testtrack-128.wav';
 const DECKS = ['A', 'B'] as const;
 const other = (d: Deck): Deck => (d === 'A' ? 'B' : 'A');
-const TRANSITIONS: Transition[] = ['dissolve', 'luma-wipe', 'displace', 'feedback-melt', 'cut'];
-const QUANTIZE: { id: Quantize; label: string }[] = [
-  { id: 'now', label: 'now' }, { id: 'beat', label: 'beat' }, { id: 'bar', label: 'bar' },
-  { id: 'phrase16', label: '16' }, { id: 'phrase32', label: '32' },
-];
-const FX: { id: MasterFx; label: string }[] = [
-  { id: 'feedback', label: 'Feedback' }, { id: 'kaleido', label: 'Kaleido' }, { id: 'rgb-split', label: 'RGB split' },
-  { id: 'grain', label: 'Grain' }, { id: 'strobe', label: 'Strobe ≤8Hz' },
-];
+type Screen = 'perform' | 'studio';
 
 // ---------- state ----------
 let list: InstrumentModule[] = [];
+let art: Record<string, string> = {};
 const clock = new Clock();
 const audio = new AudioEngine();
 const tracker = new BeatTracker();
@@ -35,41 +35,44 @@ const choreo = new Choreography();
 let latest: LiveSignals = { ...SILENT };
 let lastNow = performance.now();
 let output = { seen: 0, fps: 0, w: 0, h: 0 };
-const errors: { at: string; work: string; msg: string }[] = [];
 /** Latest error per work id (Studio verification reads it). */
 const lastError = new Map<string, { at: number; msg: string }>();
 /** Work folders whose module fails to import (syntax errors, missing files). */
 const broken = new Set<string>();
 /** When each work last loaded fine (a newer error means it does not run right now). */
 const loadedAt = new Map<string, number>();
-/** The deck whose macros the panel shows and whose work the Studio edits. */
+/** The deck whose macros the panel shows and whose work the Studio edits by default. */
 let editDeck: Deck = 'A';
-const take = { transition: 'dissolve' as Transition, beats: 8, quantize: 'bar' as Quantize };
+let screen: Screen = 'perform';
+const takeOpts: TakeOpts = { transition: 'dissolve', beats: 8, quantize: 'bar' };
 
 const bridge = openBridge((m) => {
   if (m.t === 'alive') output = { seen: performance.now(), fps: m.fps, w: m.width, h: m.height };
 });
 
-// One canvas behind the whole stage: the program and both deck previews are viewports of it.
+// One canvas behind everything: the program fills it, deck previews are viewports drawn into holes in the glass.
 const gl = h('canvas', { class: 'gl' });
-const pgmEl = h('div', { class: 'pgm' });
-const pvw: Record<Deck, HTMLDivElement> = { A: h('div', { class: 'pvw' }), B: h('div', { class: 'pvw' }) };
-
 function rel(el: HTMLElement): Rect {
   const c = gl.getBoundingClientRect();
   const r = el.getBoundingClientRect();
   return { x: r.left - c.left, y: r.top - c.top, w: r.width, h: r.height };
 }
 
+/** The screens are built after the engine; until then the program simply fills the canvas. */
+let mounted = false;
 const engine = new DeckEngine({
   canvas: gl,
-  maxPixelRatio: 1.5,
-  layout: () => ({ program: rel(pgmEl), previews: { A: rel(pvw.A), B: rel(pvw.B) } }),
+  maxPixelRatio: 1,
+  layout: () => {
+    if (!mounted) return null;
+    if (screen === 'studio') return { program: rel(studio.pgm), previews: {} };
+    return { program: { x: 0, y: 0, w: gl.clientWidth, h: gl.clientHeight }, previews: perform.holes(rel) };
+  },
   onError: (msg, work, deck) => pushError(work, deck === 'safe' ? `[safe] ${msg}` : msg),
   onLoad: (id) => {
     loadedAt.set(id, Date.now());
-    renderWorks();
-    renderMacros();
+    perform.renderLibrary();
+    perform.renderMacros();
   },
 });
 engine.setPreview('A', true);
@@ -102,224 +105,30 @@ engine.signals = (now) => {
   return latest;
 };
 
-// ---------- layout ----------
-const nowName = h('span', { class: 'name' });
-const nowJa = h('span', { class: 'jp2' });
-const fpsEl = h('span', { class: 'lbl' });
-const outEl = h('span', { class: 'lbl' });
-const pgmState = h('span', { class: 'pstate' });
-const worksEl = h('div', { class: 'works' });
-const macrosTitle = h('span', { class: 'lbl' });
-const macrosEl = h('div', { class: 'col', style: 'display:flex;flex-direction:column;gap:12px' });
-const presetsEl = h('div', { class: 'row' });
-const bpmEl = h('span', { class: 'num bpm' });
-const clockSrcEl = h('span', { class: 'lbl' });
-const beatsEl = h('div', { class: 'beats' }, h('i'), h('i'), h('i'), h('i'));
-const followBtn = h('button', { class: 'btn', type: 'button', onclick: () => toggleFollow() }, 'Audio follow');
-const audioLabel = h('span', { class: 'note' });
-const meterNames = ['low', 'mid', 'high', 'onset', 'kick', 'tension', 'drop'] as const;
-const meterBars = meterNames.map(() => h('i'));
-const errorsEl = h('div', { class: 'errors' });
-const fileInput = h('input', { type: 'file', accept: 'audio/*', style: 'display:none', onchange: () => void pickFile() });
-
-function deckCard(deck: Deck) {
-  const name = h('span', { class: 'dname' });
-  const state = h('span', { class: 'dstate' });
-  const el = h('div', { class: 'deck', onclick: () => setEditDeck(deck) },
-    h('div', { class: 'dhead' }, h('span', { class: 'dk' }, deck), name, state),
-    pvw[deck],
-  );
-  return { el, name, state };
-}
-const deckUi = { A: deckCard('A'), B: deckCard('B') };
-
-const takeBtn = h('button', { class: 'btn live take', type: 'button', onclick: () => doTake() }, 'TAKE  T');
-const takeStatus = h('div', { class: 'tstatus' });
-const fader = h('input', {
-  type: 'range', min: 0, max: 1, step: 0.001, value: 0, class: 'fader', 'aria-label': 'クロスフェーダー A–B',
-  oninput: () => { engine.mix = Number(fader.value); },
-});
-const panic = {
-  black: h('button', { class: 'btn panic', type: 'button', onclick: () => engine.blackout(!engine.isBlackout) }, 'Black  esc'),
-  freeze: h('button', { class: 'btn panic', type: 'button', onclick: () => engine.freeze(!engine.isFrozen) }, 'Freeze  Z'),
-  safe: h('button', { class: 'btn panic', type: 'button', onclick: () => goSafe() }, 'Safe  S'),
-};
-const select = <T extends string>(label: string, items: { id: T; label: string }[], value: T, set: (v: T) => void) =>
-  h('label', { class: 'tsel' },
-    h('span', { class: 'lbl' }, label),
-    h('select', { onchange: (e: Event) => set((e.target as HTMLSelectElement).value as T) },
-      ...items.map((it) => h('option', { value: it.id, selected: it.id === value }, it.label)),
-    ),
-  );
-const takeCol = h('div', { class: 'takecol' },
-  select('Transition', TRANSITIONS.map((t) => ({ id: t, label: t })), take.transition, (v) => { take.transition = v; }),
-  h('div', { class: 'tpair' },
-    select('Beats', ['1', '2', '4', '8', '16', '32'].map((b) => ({ id: b, label: b })), String(take.beats), (v) => { take.beats = Number(v); }),
-    select('Quantize', QUANTIZE, take.quantize, (v) => { take.quantize = v; }),
-  ),
-  takeBtn,
-  takeStatus,
-  h('div', { class: 'fwrap' }, h('span', { class: 'lbl' }, 'A'), fader, h('span', { class: 'lbl' }, 'B')),
-  h('div', { class: 'panics' }, panic.black, panic.freeze, panic.safe),
-);
-
-const fxEl = h('div', { class: 'fxs' },
-  ...FX.map(({ id, label }) => {
-    const btn = h('button', { class: 'btn fxbtn', type: 'button', onclick: () => { engine.setFx(id, { on: !engine.fx[id].on }); } }, label);
-    btn.dataset.fx = id;
-    return h('div', { class: 'fx' },
-      btn,
-      h('input', { type: 'range', min: 0, max: 1, step: 0.001, value: engine.fx[id].amount, 'aria-label': `${label} amount`,
-        oninput: (e: Event) => engine.setFx(id, { amount: Number((e.target as HTMLInputElement).value) }) }),
-    );
-  }),
-);
-
-const performEl = h('div', { class: 'perform' });
-const tabBtns = {
-  perform: h('button', { class: 'tab', type: 'button', onclick: () => showTab('perform') }, 'Perform'),
-  studio: h('button', { class: 'tab', type: 'button', onclick: () => showTab('studio') }, 'Studio'),
-};
-const studio = mountStudio({
-  current: () => {
-    const m = engine.manifest(editDeck);
-    return m ? { id: m.id, name: `${m.name}（デッキ ${editDeck}）` } : null;
-  },
-  works: () => {
-    const loaded = new Set(DECKS.map((d) => engine.workId(d)));
-    const all = [
-      ...list.map((w) => ({ id: w.manifest.id, name: w.manifest.name })),
-      ...[...broken].filter((id) => !find(id)).map((id) => ({ id, name: id })),
-    ];
-    return all.map((w) => ({ ...w, broken: broken.has(w.id) || (!loaded.has(w.id) && (lastError.get(w.id)?.at ?? 0) > (loadedAt.get(w.id) ?? 0)) }));
-  },
-  capture: () => new Promise<string>((done) => requestAnimationFrame(() => done(grab(0.85)))),
-  verify: verifyWork,
-});
-
-const app = document.getElementById('app')!;
-app.append(
-  h('header', { class: 'top' },
-    h('span', { class: 'wm' }, 'SHIKI'),
-    h('span', { class: 'lbl' }, 'Step 2 · perform'),
-    h('span', { class: 'now' }, h('span', { class: 'air' }, 'ON AIR'), nowName, nowJa),
-    h('span', { class: 'spacer' }),
-    fpsEl,
-    outEl,
-    h('button', { class: 'btn live', type: 'button', onclick: () => openOutput() }, '出力ウィンドウ'),
-  ),
-  h('main', { class: 'ctl' },
-    h('div', { class: 'stage' },
-      gl,
-      h('div', { class: 'pgmwrap' }, pgmEl, h('div', { class: 'pgmbar' }, h('span', { class: 'air' }, 'PGM'), pgmState)),
-      h('div', { class: 'deckrow' }, deckUi.A.el, takeCol, deckUi.B.el),
-      h('div', { class: 'meta' },
-        h('span', { class: 'keys' }, 'T take · X cut · 1–9 cue · esc black · Z freeze · S safe · SPACE tap · ←/→ nudge · ↑/↓ bpm · D downbeat · hold B build · ⏎ drop · O output'),
-      ),
-    ),
-    h('aside', {},
-      h('nav', { class: 'tabs' }, tabBtns.perform, tabBtns.studio),
-      performEl,
-      studio.el,
-    ),
-  ),
-);
-
-performEl.append(
-  h('section', { class: 'box' },
-    h('div', { class: 'row between' }, h('span', { class: 'lbl' }, 'Works → cue deck'), h('span', { class: 'note' }, 'ダブルクリックで即カット')),
-    worksEl,
-  ),
-  h('section', { class: 'box' },
-    h('div', { class: 'row between' }, macrosTitle,
-      h('button', { class: 'btn', type: 'button', onclick: () => { engine.resetKnobs(editDeck); renderMacros(); } }, 'Reset')),
-    macrosEl,
-    presetsEl,
-  ),
-  h('section', { class: 'box' }, h('span', { class: 'lbl' }, 'Master FX'), fxEl),
-  h('section', { class: 'box' },
-    h('div', { class: 'row between' }, h('span', { class: 'lbl' }, 'Clock'), clockSrcEl),
-    h('div', { class: 'row between' }, h('span', { class: 'row', style: 'align-items:flex-end' }, bpmEl, h('span', { class: 'lbl' }, 'BPM')), beatsEl),
-    h('div', { class: 'row' },
-      h('button', { class: 'btn wide', type: 'button', onclick: () => clock.tap() }, 'Tap'),
-      h('button', { class: 'btn', type: 'button', 'aria-label': '位相を早める', onclick: () => clock.nudge(-10) }, '−'),
-      h('button', { class: 'btn', type: 'button', 'aria-label': '位相を遅らせる', onclick: () => clock.nudge(10) }, '+'),
-      h('button', { class: 'btn', type: 'button', onclick: () => clock.downbeat() }, '1'),
-    ),
-    h('div', { class: 'row' }, followBtn),
-    h('div', { class: 'row' },
-      h('button', {
-        class: 'btn wide', type: 'button',
-        onpointerdown: () => { choreo.building = true; },
-        onpointerup: () => { choreo.building = false; },
-        onpointerleave: () => { choreo.building = false; },
-      }, 'Build (hold B)'),
-      h('button', { class: 'btn live wide', type: 'button', onclick: () => choreo.fire() }, 'Drop ⏎'),
-    ),
-  ),
-  h('section', { class: 'box' },
-    h('span', { class: 'lbl' }, 'Audio'),
-    h('div', { class: 'row' },
-      h('button', { class: 'btn', type: 'button', onclick: () => void useMic() }, 'Mic'),
-      h('button', { class: 'btn', type: 'button', onclick: () => void useTestTrack() }, 'Test track'),
-      h('button', { class: 'btn', type: 'button', onclick: () => fileInput.click() }, 'File…'),
-      h('button', { class: 'btn', type: 'button', onclick: () => { audio.stop(); tracker.reset(); } }, 'Off'),
-      fileInput,
-    ),
-    audioLabel,
-    ...meterNames.map((n, i) => h('div', { class: 'meter' }, h('span', { class: 'lbl' }, n), h('div', { class: 'bar' }, meterBars[i]))),
-  ),
-  h('section', { class: 'box' },
-    h('span', { class: 'lbl' }, 'Output'),
-    h('label', { class: 'macro' },
-      h('span', { class: 'lbl' }, 'Exposure'),
-      h('input', { type: 'range', min: 0.2, max: 3, step: 0.01, value: 1, oninput: (e: Event) => { engine.exposure = Number((e.target as HTMLInputElement).value); } }),
-      h('span', {}),
-    ),
-    h('p', { class: 'note', style: 'margin:0' }, '出力ウィンドウを DELL のディスプレイへ移し、ダブルクリック（または F）で全画面にします。'),
-  ),
-  h('section', { class: 'box' }, h('span', { class: 'lbl' }, 'Errors'), errorsEl),
-);
-
-function showTab(tab: 'perform' | 'studio') {
-  performEl.hidden = tab !== 'perform';
-  studio.el.hidden = tab !== 'studio';
-  tabBtns.perform.classList.toggle('on', tab === 'perform');
-  tabBtns.studio.classList.toggle('on', tab === 'studio');
-  try {
-    localStorage.setItem('shiki.tab', tab);
-  } catch {
-    /* storage unavailable */
-  }
-}
-let initialTab: string | null = null;
-try {
-  initialTab = localStorage.getItem('shiki.tab');
-} catch {
-  /* storage unavailable */
-}
-showTab(initialTab === 'studio' ? 'studio' : 'perform');
-
-// ---------- decks, takes & panic ----------
+// ---------- actions ----------
 const cueDeck = (): Deck => other(engine.onAir);
+
+function find(id: string | null): InstrumentModule | undefined {
+  return id ? list.find((x) => x.manifest.id === id) : undefined;
+}
 
 function loadInto(deck: Deck, w: InstrumentModule, keepKnobs = false): boolean {
   const ok = engine.load(deck, w, { keepKnobs });
   if (ok) {
-    renderWorks();
-    renderMacros();
+    perform.renderLibrary();
+    perform.renderMacros();
     studio.refresh();
   }
   return ok;
 }
 
-function doTake(opts: Partial<typeof take> = {}) {
+function doTake(opts: Partial<TakeOpts> = {}) {
   if (engine.isSafe) {
     // Leaving safe: cut straight back to the on-air deck.
     engine.onAir = engine.onAir;
     return;
   }
-  if (!engine.take({ ...take, ...opts })) pushError('take', `デッキ ${cueDeck()} に作品がありません`);
+  if (!engine.take({ ...takeOpts, ...opts })) pushError('take', `デッキ ${cueDeck()} に作品がありません`);
 }
 
 function goSafe() {
@@ -328,92 +137,46 @@ function goSafe() {
 
 function setEditDeck(deck: Deck) {
   editDeck = deck;
-  renderMacros();
+  perform.renderMacros();
   studio.refresh();
 }
 
-// ---------- works & macros ----------
-function renderWorks() {
-  worksEl.replaceChildren(
-    ...list.map((w, i) => {
-      const id = w.manifest.id;
-      const tags = DECKS.filter((d) => engine.workId(d) === id);
-      return h('button', {
-        class: `work${tags.includes(engine.onAir) ? ' on' : tags.length ? ' cue' : ''}`, type: 'button',
-        onclick: () => loadInto(cueDeck(), w),
-        ondblclick: () => { if (loadInto(cueDeck(), w)) doTake({ transition: 'cut', quantize: 'now' }); },
-      },
-        h('span', { class: 'k' }, String(i + 1)),
-        h('span', { class: 'n' }, w.manifest.name),
-        h('span', { class: 'j' }, w.manifest.nameJa ?? ''),
-        h('span', { class: 'dtags' }, tags.join(' ')),
-      );
-    }),
-  );
+function openOutput() {
+  window.open('/output.html', 'shiki-output', 'popup,width=1280,height=720');
 }
 
-const effBars: HTMLElement[] = [];
-function renderMacros() {
-  const deck = editDeck;
-  const m = engine.manifest(deck);
-  const knobs = engine.knobs[deck];
-  macrosTitle.textContent = `Macros · deck ${deck}${m ? ` · ${m.name}` : ''}`;
-  effBars.length = 0;
-  macrosEl.replaceChildren(
-    ...(m?.macros ?? []).map((def, i) => {
-      const value = h('span', { class: 'mono', style: 'font-size:11px;text-align:right' }, knobs[i].toFixed(2));
-      const eff = h('i');
-      effBars.push(eff);
-      return h('label', { class: 'macro' },
-        h('span', { class: 'lbl' }, def.label),
-        h('input', {
-          type: 'range', min: 0, max: 1, step: 0.001, value: knobs[i],
-          oninput: (e: Event) => {
-            knobs[i] = Number((e.target as HTMLInputElement).value);
-            value.textContent = knobs[i].toFixed(2);
-          },
-        }),
-        value,
-        def.mod ? h('span', { class: 'mod' }, `${def.mod.source.toUpperCase()} +${def.mod.amount.toFixed(2)}`) : null,
-        h('span', { class: 'eff' }, eff),
-      );
-    }),
-  );
-  presetsEl.replaceChildren(
-    ...Object.keys(m?.presets ?? {}).map((name) =>
-      h('button', { class: 'btn', type: 'button', onclick: () => { engine.applyPreset(deck, name); renderMacros(); } }, name),
-    ),
-  );
-}
-
-function find(id: string | null): InstrumentModule | undefined {
-  return id ? list.find((x) => x.manifest.id === id) : undefined;
-}
-
-function applyWorks(res: LoadResult) {
-  list = res.works;
-  broken.clear();
-  for (const e of res.errors) {
-    broken.add(e.id);
-    pushError(e.id, `読み込めません（ほかの作品は動き続けます）\n${e.error}`);
+const fileInput = h('input', { type: 'file', accept: 'audio/*', style: 'display:none', onchange: () => void pickFile() });
+async function useMic() {
+  try {
+    await audio.useMic();
+    tracker.reset();
+  } catch (err) {
+    pushError('audio', `マイクを使えません: ${String(err)}`);
   }
-  for (const deck of DECKS) {
-    const w = find(engine.workId(deck));
-    if (w) engine.load(deck, w, { keepKnobs: true });
-  }
-  const safe = find(engine.workId('safe'));
-  if (safe) engine.setSafe(safe);
-  renderWorks();
-  renderMacros();
-  studio.refresh();
 }
-
-onWorksChanged(applyWorks);
+async function useTestTrack() {
+  try {
+    await audio.useFile(TEST_TRACK);
+    tracker.reset();
+  } catch (err) {
+    pushError('audio', `テスト音源がありません（npm run gen:testtrack）: ${String(err)}`);
+  }
+}
+async function pickFile() {
+  const f = fileInput.files?.[0];
+  if (!f) return;
+  try {
+    await audio.useFile(f);
+    tracker.reset();
+  } catch (err) {
+    pushError('audio', String(err));
+  }
+}
 
 /**
- * Studio check after an agent finished: waits for the registry to hold the work's latest code (a new folder or
- * edited files arrive through HMR), then loads it fail-safe — into its deck, or for a new work into the cue deck
- * and cut on air. Returns the load/compile error, or null.
+ * After an agent finished: waits for the registry to hold the work's latest code (new folders and edits arrive through
+ * HMR), then loads it fail-safe into its deck (or, for a new work, the cue deck — cut on air only while in the Studio).
+ * Returns the load/compile error, or null.
  */
 async function verifyWork(id: string): Promise<string | null> {
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -430,7 +193,7 @@ async function verifyWork(id: string): Promise<string | null> {
   const deck = home ?? cueDeck();
   if (loadInto(deck, w, home !== undefined)) {
     if (!home) {
-      engine.onAir = deck;
+      if (screen === 'studio') engine.onAir = deck;
       setEditDeck(deck);
     }
     return null;
@@ -439,54 +202,191 @@ async function verifyWork(id: string): Promise<string | null> {
   return e && e.at >= before ? e.msg : '読み込みに失敗しました（詳細なし）';
 }
 
-// ---------- audio & clock ----------
-async function useMic() {
-  try {
-    await audio.useMic();
-    tracker.reset();
-  } catch (err) {
-    pushError('audio', `マイクを使えません: ${String(err)}`);
-  }
+/** Perform's AI prompt: feedback to the work on the cue deck (live, the AI only rewrites what is not on air). */
+let quickJob: JobHandle | null = null;
+async function quickFeedback(text: string, status: (s: string, kind?: 'run' | 'ok' | 'err') => void) {
+  const id = engine.workId(cueDeck());
+  if (!id) return status(`デッキ ${cueDeck()} に作品がありません`, 'err');
+  if (quickJob) return status('前の指示を処理中です', 'err');
+  const prefs = loadPrefs();
+  const pick = resolvePick(await agentOptions(), prefs);
+  const started = Date.now();
+  const tick = () => `${pick.agent} ${pick.model} ${pick.effort} · ${Math.round((Date.now() - started) / 1000)}s`;
+  status(`${id} を修正中 · ${tick()}`, 'run');
+  const failed = await runEdit({ ...pick, mode: 'feedback', workId: id, message: text }, {
+    turn: () => {},
+    line: (type, t) => {
+      if (type === 'text' || type === 'tool') status(`${tick()} · ${t.replace(/\s+/g, ' ').slice(0, 90)}`, 'run');
+    },
+    state: (s) => {
+      if (s === 'done') status(`反映しました → DECK ${DECKS.find((d) => engine.workId(d) === id) ?? ''} · ${id}`, 'ok');
+      else if (s === 'error') status('うまくいきませんでした（Studio のログを確認）', 'err');
+      else if (s === 'cancelled') status('中止しました', 'err');
+      else if (s === 'verifying') status(`${id} を検証中…`, 'run');
+    },
+    verify: verifyWork,
+    autoRepair: () => loadPrefs().autoRepair,
+  }, (handle) => (quickJob = handle));
+  if (failed) status(failed, 'err');
 }
 
-async function useTestTrack() {
-  try {
-    await audio.useFile(TEST_TRACK);
-    tracker.reset();
-  } catch (err) {
-    pushError('audio', `テスト音源がありません（npm run gen:testtrack）: ${String(err)}`);
-  }
-}
+// ---------- screens ----------
+const studioBg = h('img', { class: 'studio-bg', alt: '', style: 'opacity:0' });
+const toasts = h('div', { class: 'toasts', 'aria-live': 'polite' });
+const perform = mountPerform({
+  engine,
+  signals: () => latest,
+  works: () => list,
+  art: (id) => art[id],
+  editDeck: () => editDeck,
+  setEditDeck,
+  cueDeck,
+  loadInto: (deck, w) => loadInto(deck, w),
+  take: doTake,
+  takeOpts,
+  goSafe,
+  openOutput,
+  build: (on) => { choreo.building = on; },
+  drop: () => choreo.fire(),
+  audio: {
+    mode: () => audio.mode,
+    label: () => audio.label,
+    mic: () => void useMic(),
+    test: () => void useTestTrack(),
+    file: () => fileInput.click(),
+    off: () => { audio.stop(); tracker.reset(); },
+  },
+  quickFeedback,
+});
 
-async function pickFile() {
-  const f = fileInput.files?.[0];
-  if (!f) return;
+const studio = mountStudio({
+  works: () => {
+    const loaded = new Set(DECKS.map((d) => engine.workId(d)));
+    const all = [
+      ...list.map((w) => ({ id: w.manifest.id, name: w.manifest.name })),
+      ...[...broken].filter((id) => !find(id)).map((id) => ({ id, name: id })),
+    ];
+    return all.map((w) => ({ ...w, broken: broken.has(w.id) || (!loaded.has(w.id) && (lastError.get(w.id)?.at ?? 0) > (loadedAt.get(w.id) ?? 0)) }));
+  },
+  current: () => {
+    const m = engine.manifest(editDeck);
+    return m ? { id: m.id, name: `${m.name}（デッキ ${editDeck}）` } : null;
+  },
+  capture: () => new Promise<string>((done) => requestAnimationFrame(() => done(grab(programRect(), 0.85)))),
+  verify: verifyWork,
+  setBackground: (url) => {
+    if (url) studioBg.src = url;
+    studioBg.style.opacity = url ? '1' : '0';
+  },
+  openPerform: () => setScreen('perform'),
+});
+
+// ---------- header ----------
+const clockSrc = h('button', { type: 'button', class: 'clksrc mono', title: 'クリックで音への自動追従を切り替え', onclick: () => toggleFollow() },
+  h('span', {}, 'Tap clock'), h('i', { class: 'dot breathe' }));
+const bpmEl = h('span', { class: 'num', style: 'font-size:28px' });
+const barEl = h('span', { class: 'num', style: 'font-size:28px' });
+const beatDots = Array.from({ length: 16 }, () => h('i'));
+const phraseCells = Array.from({ length: 32 }, (_, i) => h('i', { class: i % 8 === 0 ? 'mk' : '' }));
+const outEl = h('span', { class: 'mono' });
+const fpsEl = h('span', { class: 'mono' });
+const ttl = h('span', { class: 'ttl' }, 'PERFORM');
+const sub = h('span', { class: 'lbl', style: 'font-size:8.5px;letter-spacing:.2em' }, 'Visuals for music');
+const segBtns = {
+  perform: h('button', { type: 'button', onclick: () => setScreen('perform') }, 'PERFORM'),
+  studio: h('button', { type: 'button', onclick: () => setScreen('studio') }, 'STUDIO'),
+};
+const header = h('header', { class: 'topi' },
+  h('div', { class: 'bl' },
+    h('span', { class: 'wm' }, 'SHIKI'),
+    h('i', { class: 'slash', 'aria-hidden': 'true' }),
+    h('span', { class: 'stack2', style: 'gap:3px' }, ttl, sub),
+    h('nav', { class: 'mseg', 'aria-label': '画面' }, segBtns.perform, segBtns.studio),
+  ),
+  h('div', { class: 'clk' },
+    clockSrc,
+    h('i', { class: 'sep' }),
+    h('span', { style: 'display:flex;align-items:flex-end;gap:6px' }, bpmEl, h('span', { class: 'lbl', style: 'padding-bottom:2px' }, 'BPM')),
+    h('span', { style: 'display:flex;align-items:flex-end;gap:6px' }, barEl, h('span', { class: 'lbl', style: 'padding-bottom:2px' }, 'Bar')),
+    h('div', { class: 'stack2', style: 'gap:7px' },
+      h('div', { class: 'bd', 'aria-hidden': 'true' }, ...[0, 1, 2, 3].map((b) => h('span', {}, ...beatDots.slice(b * 4, b * 4 + 4)))),
+      h('div', { class: 'cells', 'aria-hidden': 'true' }, ...phraseCells),
+    ),
+    h('div', { style: 'display:flex;gap:6px' },
+      h('button', { type: 'button', class: 'btn', style: 'min-width:54px', onclick: () => clock.tap() }, 'Tap'),
+      h('button', { type: 'button', class: 'btn', 'aria-label': '位相を早める', style: 'width:32px;padding:0', onclick: () => clock.nudge(-10) }, '−'),
+      h('span', { class: 'lbl', style: 'align-self:center' }, 'Nudge'),
+      h('button', { type: 'button', class: 'btn', 'aria-label': '位相を遅らせる', style: 'width:32px;padding:0', onclick: () => clock.nudge(10) }, '+'),
+      h('button', { type: 'button', class: 'btn', onclick: () => clock.downbeat() }, 'Downbeat'),
+    ),
+  ),
+  h('div', { class: 'st' }, h('span', { class: 'stack2', style: 'gap:2px;align-items:flex-end' }, outEl, fpsEl)),
+);
+
+const app = h('div', { class: 'app imm' },
+  gl, studioBg, h('div', { class: 'vig' }), h('div', { class: 'scanl' }),
+  h('div', { class: 'shell' }, header, perform.el, studio.el),
+  toasts, fileInput,
+);
+document.getElementById('app')!.append(app);
+mounted = true;
+
+function setScreen(s: Screen) {
+  screen = s;
+  app.dataset.screen = s;
+  ttl.textContent = s === 'perform' ? 'PERFORM' : 'STUDIO';
+  sub.textContent = s === 'perform' ? 'Visuals for music' : 'Image first';
+  segBtns.perform.classList.toggle('on', s === 'perform');
+  segBtns.studio.classList.toggle('on', s === 'studio');
   try {
-    await audio.useFile(f);
-    tracker.reset();
-  } catch (err) {
-    pushError('audio', String(err));
+    localStorage.setItem('shiki.screen', s);
+  } catch {
+    /* storage unavailable */
   }
+  if (s === 'studio') studio.refresh();
 }
+let initialScreen: string | null = null;
+try {
+  initialScreen = localStorage.getItem('shiki.screen');
+} catch {
+  /* storage unavailable */
+}
+setScreen(initialScreen === 'studio' ? 'studio' : 'perform');
 
 function toggleFollow() {
   clock.follow = !clock.follow;
   if (!clock.follow && clock.source === 'audio') clock.source = 'tap';
 }
 
-function openOutput() {
-  window.open('/output.html', 'shiki-output', 'popup,width=1280,height=720');
+// ---------- works ----------
+function applyWorks(res: LoadResult) {
+  list = res.works;
+  art = res.art;
+  broken.clear();
+  for (const e of res.errors) {
+    broken.add(e.id);
+    pushError(e.id, `読み込めません（ほかの作品は動き続けます）\n${e.error}`);
+  }
+  for (const deck of DECKS) {
+    const w = find(engine.workId(deck));
+    if (w) engine.load(deck, w, { keepKnobs: true });
+  }
+  const safe = find(engine.workId('safe'));
+  if (safe) engine.setSafe(safe);
+  perform.renderLibrary();
+  perform.renderMacros();
+  studio.refresh();
 }
+onWorksChanged(applyWorks);
 
 // ---------- errors ----------
 function pushError(work: string, msg: string) {
   console.warn(`[shiki] ${work}: ${msg}`);
   lastError.set(work, { at: Date.now(), msg });
-  errors.unshift({ at: new Date().toLocaleTimeString(), work, msg });
-  errors.length = Math.min(errors.length, 5);
-  errorsEl.replaceChildren(
-    ...errors.map((e) => h('div', { class: 'error' }, `${e.at} · ${e.work}\n${e.msg}`)),
-  );
+  const t = h('div', { class: 'glass toast', role: 'status', onclick: () => t.remove() }, h('b', {}, work), `\n${msg.slice(0, 600)}`);
+  toasts.prepend(t);
+  while (toasts.childElementCount > 3) toasts.lastElementChild?.remove();
+  setTimeout(() => t.remove(), 9000);
 }
 
 // ---------- keys ----------
@@ -510,6 +410,8 @@ window.addEventListener('keydown', (e) => {
     case 'z': case 'Z': engine.freeze(!engine.isFrozen); break;
     case 's': case 'S': goSafe(); break;
     case 'o': case 'O': openOutput(); break;
+    case 'h': case 'H': perform.toggleTitle(); break;
+    case 'Tab': e.preventDefault(); setScreen(screen === 'perform' ? 'studio' : 'perform'); break;
     default:
       if (/^[1-9]$/.test(e.key)) {
         const w = list[Number(e.key) - 1];
@@ -517,67 +419,50 @@ window.addEventListener('keydown', (e) => {
       }
   }
 });
-
 window.addEventListener('keyup', (e) => {
   if (e.key === 'b' || e.key === 'B') choreo.building = false;
 });
 
 // ---------- UI loop ----------
+const deckSince: Record<Deck, { id: string | null; at: number }> = { A: { id: null, at: 0 }, B: { id: null, at: 0 } };
 function ui() {
   requestAnimationFrame(ui);
-  fpsEl.textContent = `${Math.round(engine.fps)} fps`;
   const alive = performance.now() - output.seen < 2500;
-  outEl.textContent = alive ? `OUT · ${output.w}×${output.h} · ${output.fps} fps` : 'OUT · closed';
-  const air = engine.manifest(engine.isSafe ? 'safe' : engine.onAir);
-  nowName.textContent = air?.name ?? '—';
-  nowJa.textContent = engine.isSafe ? 'SAFE' : air?.nameJa ?? '';
-
-  // decks & take
-  const active = engine.active;
-  const pending = engine.pending;
-  for (const d of DECKS) {
-    const card = deckUi[d];
-    const m = engine.manifest(d);
-    card.name.textContent = m ? m.name : '— empty —';
-    const onAir = !engine.isSafe && (d === engine.onAir || active?.to === d);
-    card.el.classList.toggle('air', onAir);
-    card.el.classList.toggle('edit', d === editDeck);
-    card.state.textContent = d === engine.onAir ? (engine.isSafe ? 'standby' : 'on air') : active?.to === d ? 'taking' : 'cue';
-  }
-  if (document.activeElement !== fader) fader.value = String(engine.mix);
-  if (pending) takeStatus.textContent = `${pending.transition} → ${pending.to} · in ${Math.max(0, pending.startBeat - latest.beats).toFixed(1)} beats`;
-  else if (active) takeStatus.textContent = `${active.transition} → ${active.to} · ${Math.round(engine.progress * 100)}%`;
-  else takeStatus.textContent = `cue ${cueDeck()} ← ${engine.manifest(cueDeck())?.name ?? 'empty'}`;
-  takeBtn.classList.toggle('armed', !!pending);
-  panic.black.classList.toggle('hot', engine.isBlackout);
-  panic.freeze.classList.toggle('hot', engine.isFrozen);
-  panic.safe.classList.toggle('hot', engine.isSafe);
-  pgmState.textContent = [engine.isBlackout && 'BLACKOUT', engine.isFrozen && 'FROZEN', engine.isSafe && 'SAFE',
-    active && `${active.transition} ${Math.round(engine.progress * 100)}%`].filter(Boolean).join(' · ');
-  for (const btn of fxEl.querySelectorAll<HTMLButtonElement>('.fxbtn')) btn.classList.toggle('on', engine.fx[btn.dataset.fx as MasterFx].on);
-
-  // clock & audio
+  outEl.textContent = alive ? `OUT ${output.w}×${output.h} · ${output.fps}fps` : 'OUT · closed';
+  fpsEl.textContent = `CTRL ${Math.round(engine.fps)}fps`;
+  clockSrc.classList.toggle('on', clock.follow);
+  (clockSrc.firstElementChild as HTMLElement).textContent = clock.follow
+    ? `Audio follow · ${clock.confidence.toFixed(2)}`
+    : `${clock.source === 'audio' ? 'Audio' : 'Tap'} clock`;
   bpmEl.textContent = clock.bpm.toFixed(1);
-  clockSrcEl.textContent = `${clock.source}${clock.follow ? ` · conf ${clock.confidence.toFixed(2)}` : ''}`;
-  followBtn.classList.toggle('on', clock.follow);
-  const beatIdx = Math.floor(latest.bar * 4) % 4;
-  [...beatsEl.children].forEach((el, i) => {
-    el.classList.toggle('on', i === beatIdx && latest.beat < 0.35);
-    el.classList.toggle('one', i === 0);
+  const beats = Math.max(0, latest.beats);
+  const bar = Math.floor(beats / 4);
+  barEl.textContent = `${(bar % 32) + 1}.${(Math.floor(beats) % 4) + 1}`;
+  const sixteenth = Math.floor(beats * 4) % 16;
+  beatDots.forEach((d, i) => {
+    d.className = i < sixteenth ? 'dn' : i === sixteenth ? 'on' : '';
   });
-  audioLabel.textContent = audio.mode === 'off' ? '入力なし' : `${audio.mode} · ${audio.label}`;
-  meterNames.forEach((n, i) => (meterBars[i].style.width = `${Math.round(latest[n] * 100)}%`));
-  engine.macros[editDeck].forEach((v, i) => {
-    const bar = effBars[i];
-    if (bar) bar.style.width = `${Math.round(v * 100)}%`;
+  phraseCells.forEach((c, i) => {
+    c.className = (i < bar % 32 ? 'dn' : i === bar % 32 ? 'on' : '') + (i % 8 === 0 ? ' mk' : '');
   });
+  if (screen === 'perform') {
+    perform.frame();
+    // Works without a key visual get a library thumbnail from their deck preview once they have run for a moment.
+    for (const d of DECKS) {
+      const id = engine.workId(d);
+      if (deckSince[d].id !== id) deckSince[d] = { id, at: performance.now() };
+      if (id && !art[id] && !perform.hasThumb(id) && performance.now() - deckSince[d].at > 2500) {
+        const r = perform.holes(rel)[d];
+        if (r && r.w > 10) perform.setThumb(id, grab(r, 0.8));
+      }
+    }
+  } else studio.frame();
 }
 
 // ---------- automation hooks (dev only) ----------
-/** The program viewport of the last rendered frame as a JPEG data URL. Call right after a render. */
-function grab(quality = 0.9): string {
+/** A region of the last rendered frame as a JPEG data URL. Call right after a render. */
+function grab(r: Rect, quality = 0.9): string {
   const k = gl.width / Math.max(1, gl.clientWidth);
-  const r = rel(pgmEl);
   const w = Math.max(2, Math.round(r.w * k));
   const hh = Math.max(2, Math.round(r.h * k));
   const c = document.createElement('canvas');
@@ -586,43 +471,15 @@ function grab(quality = 0.9): string {
   c.getContext('2d')!.drawImage(gl, Math.round(r.x * k), Math.round(r.y * k), w, hh, 0, 0, w, hh);
   return c.toDataURL('image/jpeg', quality);
 }
+function programRect(): Rect {
+  return screen === 'studio' ? rel(studio.pgm) : { x: 0, y: 0, w: gl.clientWidth, h: gl.clientHeight };
+}
 
 /** Saves the next rendered program frame to .agents/snaps/<name>.jpg via the dev server. */
 async function snap(name = 'snap', quality = 0.9): Promise<string> {
-  const url = await new Promise<string>((done) => requestAnimationFrame(() => done(grab(quality))));
+  const url = await new Promise<string>((done) => requestAnimationFrame(() => done(grab(programRect(), quality))));
   const res = await fetch(`/__shiki/snap?name=${encodeURIComponent(name)}`, { method: 'POST', body: url });
   return ((await res.json()) as { file: string }).file;
-}
-
-/** Records `seconds` of the program to .agents/clips/<name>.mp4 (+ a contact sheet) via the dev server. */
-async function record(name = 'clip', seconds = 8): Promise<{ mp4: string; sheet: string }> {
-  const k = gl.width / Math.max(1, gl.clientWidth);
-  const r = rel(pgmEl);
-  const c = h('canvas', { width: Math.round(r.w * k), height: Math.round(r.h * k) });
-  const ctx = c.getContext('2d')!;
-  let on = true;
-  const copy = () => {
-    if (!on) return;
-    requestAnimationFrame(copy);
-    ctx.drawImage(gl, Math.round(r.x * k), Math.round(r.y * k), c.width, c.height, 0, 0, c.width, c.height);
-  };
-  copy();
-  const stream = c.captureStream(30);
-  const rec = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 16_000_000 });
-  const chunks: Blob[] = [];
-  rec.ondataavailable = (e) => chunks.push(e.data);
-  const stopped = new Promise<void>((done) => (rec.onstop = () => done()));
-  rec.start(250);
-  await new Promise((res) => setTimeout(res, seconds * 1000));
-  rec.stop();
-  await stopped;
-  on = false;
-  stream.getTracks().forEach((t) => t.stop());
-  const res = await fetch(`/__shiki/clip?name=${encodeURIComponent(name)}`, {
-    method: 'POST',
-    body: new Blob(chunks, { type: 'video/webm' }),
-  });
-  return (await res.json()) as { mp4: string; sheet: string };
 }
 
 /**
@@ -662,10 +519,10 @@ async function offline(opts: { name?: string; seconds?: number; fps?: number; bu
       frameTime = t0 + (i * 1000) / fps;
       if (takeAt !== undefined && !took && i / fps >= takeAt) {
         took = true;
-        engine.take({ ...take }, scripted.beats);
+        engine.take({ ...takeOpts }, scripted.beats);
       }
       engine.renderAt(frameTime);
-      await fetch(`/__shiki/frame?name=${encodeURIComponent(name)}&i=${i}`, { method: 'POST', body: grab(0.9) });
+      await fetch(`/__shiki/frame?name=${encodeURIComponent(name)}&i=${i}`, { method: 'POST', body: grab(programRect(), 0.9) });
     }
   } finally {
     engine.signals = saved;
@@ -678,7 +535,7 @@ async function offline(opts: { name?: string; seconds?: number; fps?: number; bu
 if (import.meta.env.DEV) {
   Object.assign(window, {
     __shiki: {
-      engine, clock, audio, tracker, choreo, snap, record, offline, take,
+      engine, clock, audio, tracker, choreo, snap, offline, take: takeOpts, setScreen,
       /** Puts a work straight on air (automation). */
       select: (id: string) => {
         const w = find(id);
@@ -687,10 +544,6 @@ if (import.meta.env.DEV) {
       },
       cue: (id: string) => { const w = find(id); if (w) loadInto(cueDeck(), w); return engine.workId(cueDeck()); },
       doTake,
-      setKnob: (id: string, v: number) => {
-        const i = engine.manifest(editDeck)?.macros.findIndex((m) => m.id === id) ?? -1;
-        if (i >= 0) { engine.knobs[editDeck][i] = v; renderMacros(); }
-      },
       testTrack: useTestTrack,
       signals: () => latest,
     },
@@ -704,6 +557,7 @@ for (const e of initial.errors) {
   pushError(e.id, `読み込めません（ほかの作品は動き続けます）\n${e.error}`);
 }
 list = initial.works;
+art = initial.art;
 const first = find('moonsea') ?? list[0];
 const second = find('ink-tide') ?? list.find((w) => w !== first) ?? first;
 if (first) {
@@ -711,8 +565,8 @@ if (first) {
   engine.setSafe(first);
 }
 if (second) engine.load('B', second);
-renderWorks();
-renderMacros();
+perform.renderLibrary();
+perform.renderMacros();
 studio.refresh();
 engine.start();
 ui();

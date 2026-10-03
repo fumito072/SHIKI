@@ -7,4 +7,5 @@ coverage/
 .env.*
 .DS_Store
 .agents/
+studio/
 public/test/
