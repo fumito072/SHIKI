@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>SHIKI Setup — immersive</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./shiki.css">
+<link rel="stylesheet" href="./imm.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght,ROND@400..900,100&amp;family=Martian+Mono:wdth,wght@75..112.5,200..800&amp;family=Zen+Kaku+Gothic+New:wght@300;400;500;700&amp;family=Shippori+Mincho:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#050607}
+a{color:#bfeef6}a:hover{color:#e2f8fb}
+.ui{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto auto auto;align-content:start}
+.mode{position:relative;cursor:pointer}
+.mode.on{border-color:rgba(236,230,218,.75);box-shadow:0 0 0 1px rgba(236,230,218,.25)}
+.mode input{position:absolute;top:14px;right:14px;width:18px;height:18px;accent-color:#ece6da;margin:0}
+.mode ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px}
+.mode li{font-family:var(--f-mono);font-stretch:var(--mono-st);font-size:10px;color:#c9c4b8;letter-spacing:.03em}
+.src{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.src li{display:grid;grid-template-columns:12px 22px minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:8px 10px;border:1px solid rgba(236,230,218,.14);border-radius:4px;background:rgba(5,6,7,.4)}
+.src li.act{border-color:rgba(181,211,143,.5)}
+.grip{width:8px;height:14px;background-image:radial-gradient(circle,rgba(236,230,218,.45) 1px,transparent 1.3px);background-size:4px 4px}
+.okc{border-color:rgba(181,211,143,.45);color:#cfe6b4;background:rgba(5,6,7,.45)}
+.wnc{border-color:rgba(255,198,90,.45);color:#ffd892;background:rgba(5,6,7,.45)}
+.row2{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:32px}
+.lock{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dotted rgba(236,230,218,.18)}
+.out{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid rgba(236,230,218,.14);border-radius:4px;background:rgba(5,6,7,.4)}
+.checks{grid-column:1 / -1}
+.cl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 16px}
+.ck{display:flex;align-items:center;gap:8px;font-size:12.5px;min-height:28px}
+.ck svg{width:16px;height:16px;flex:none}
+@media (max-width:1100px){.ui{grid-template-columns:minmax(0,1fr)}.cl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.cl{grid-template-columns:minmax(0,1fr)}}
+</style>
+</helmet>
+<div class="app imm" style="--live: {{live}}; --cue: {{cue}}">
+  <img class="bg haze" src="/_blob/1c3bb24527e64362fe5ce2a7e4fc3e09" alt="">
+  <div class="vig"></div>
+
+  <div class="ui">
+    <header class="topi">
+      <div class="bl">
+        <span class="wm">SHIKI</span>
+        <i class="slash" aria-hidden="true"></i>
+        <span class="stack2" style="gap: 3px"><span class="ttl">SETUP</span><span class="lbl" style="font-size: 8.5px; letter-spacing: 0.2em">Before the show</span></span>
+        <span style="display: flex; gap: 10px; align-items: baseline; margin-left: 10px"><strong class="name" style="font-size: 17px">FRIDAY LATE</strong><span class="jp2" style="font-size: 14px; color: #d6d1c6">[会場名] · [日付]</span></span>
+      </div>
+      <div class="st">
+        <span class="chip wnc" style="font-size: 10px; padding: 5px 10px">本番前チェック 6 / 8</span>
+        <a href="PerformImmersive.dc.html" class="btn prime" style="height: 36px">Perform へ →</a>
+        <nav style="display: flex; gap: 2px" aria-label="画面">
+          <a href="StudioImm.dc.html" class="icobtn" aria-label="Studio"><svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="8" cy="8" r="5.5"></circle><circle cx="8" cy="8" r="1.6"></circle></svg></a>
+        </nav>
+      </div>
+    </header>
+
+    <label class="glass mode">
+      <input type="radio" name="mode">
+      <span class="lbl">A · Solo</span>
+      <strong class="wm" style="font-size: 20px; letter-spacing: 0.3em">SOLO</strong>
+      <span class="jp2" style="font-size: 13.5px; color: #e2ddd2">自分の音と映像だけ。拍は自分で作る。</span>
+      <ul><li>Clock · tap / audio follow</li><li>Switch · free</li><li>Layout · library first</li></ul>
+    </label>
+    <label class="glass mode on">
+      <input type="radio" name="mode" checked="checked">
+      <span class="lbl" style="color: var(--acc)">B · With DJ</span>
+      <strong class="wm" style="font-size: 20px; letter-spacing: 0.3em">DJ</strong>
+      <span class="jp2" style="font-size: 13.5px; color: #e2ddd2">DJの時間に乗る。曲は即興で変わる。長丁場。</span>
+      <ul><li>Clock · Link → Pro DJ Link → MIDI → audio</li><li>Switch · phrase 16 / 32</li><li>AI · next-work suggestions</li></ul>
+    </label>
+    <label class="glass mode">
+      <input type="radio" name="mode">
+      <span class="lbl">C · With band</span>
+      <strong class="wm" style="font-size: 20px; letter-spacing: 0.3em">BAND</strong>
+      <span class="jp2" style="font-size: 13.5px; color: #e2ddd2">揺れるテンポに寄り添う。セトリと曲ごとのキュー。</span>
+      <ul><li>Clock · audio follow + downbeat / MTC</li><li>Switch · cue stack + footswitch</li><li>Inputs · stems ×5, camera</li></ul>
+    </label>
+
+    <section class="glass" aria-label="クロック">
+      <div class="gh"><span class="t"><span class="lbl" style="color: #ece6da">Clock sources</span><span class="jp">同期の優先順位</span></span><span class="chip okc">auto fallback</span></div>
+      <ol class="src">
+        <sc-for list="{{sources}}" as="s" hint-placeholder-count="5">
+          <li class="{{s.cls}}">
+            <i class="grip" aria-hidden="true"></i>
+            <span class="num" style="font-size: 18px">{{s.rank}}</span>
+            <span class="stack2" style="gap: 2px"><strong class="mono" style="font-size: 11.5px; letter-spacing: 0.06em">{{s.name}}</strong><span class="mono" style="font-size: 9.5px; color: #c9c4b8">{{s.detail}}</span></span>
+            <span class="chip {{s.chip}}">{{s.status}}</span>
+          </li>
+        </sc-for>
+      </ol>
+      <p class="jp2" style="margin: 0; font-size: 12.5px; line-height: 1.6; color: #e2ddd2">信号が途切れたら次の候補へ自動で切り替えます。手で叩くタップ・ナッジ・1拍目は、いつでも最優先です。</p>
+    </section>
+
+    <section class="glass" aria-label="音声入力">
+      <div class="gh"><span class="t"><span class="lbl" style="color: #ece6da">Audio input</span><span class="jp">音の入口</span></span><span class="lbl">48 kHz · 2.7 ms</span></div>
+      <label class="stack2" style="gap: 4px"><span class="lbl" style="font-size: 9px">Interface</span><select class="sel"><option>[オーディオIF] · 8 in</option></select></label>
+      <div class="stack2" style="gap: 6px">
+        <div class="ph"><span class="mono" style="font-size: 10.5px">IN 1–2 · DJ BOOTH OUT → MASTER</span><span class="mono" style="font-size: 10px; color: #c9c4b8">-14 dB</span></div>
+        <div class="sm anim" style="--v: 74%; --lo: 38%; --pk: 82%; --d: .476s"><i></i><b></b></div>
+        <span class="mono" style="font-size: 9.5px; color: #a3a8a2">IN 3–8 · BAND モードでパート別に使用</span>
+      </div>
+      <div class="stack2" style="gap: 0">
+        <span class="lbl" style="font-size: 9px; margin-bottom: 4px">Browser processing · locked off</span>
+        <div class="lock"><span>エコーキャンセル</span><span class="chip okc">off</span></div>
+        <div class="lock"><span>ノイズ抑制</span><span class="chip okc">off</span></div>
+        <div class="lock"><span>自動ゲイン</span><span class="chip okc">off</span></div>
+      </div>
+      <label class="row2"><span>反応レンジの自動調整<span class="mono" style="font-size: 9.5px; color: #a3a8a2; margin-left: 8px">リハ 12分で学習</span></span><input class="cb" type="checkbox" checked="checked"></label>
+      <div class="stack2" style="gap: 4px"><span class="lbl" style="font-size: 9px">Analysis profile</span><div class="pq" role="group" aria-label="解析プロファイル"><button type="button" class="on">ELECTRONIC</button><button type="button">BAND</button><button type="button">AMBIENT</button></div></div>
+    </section>
+
+    <section class="glass" aria-label="出力">
+      <div class="gh"><span class="t"><span class="lbl" style="color: #ece6da">Outputs</span><span class="jp">映像の出口</span></span><span class="lbl">2 displays · NDI</span></div>
+      <div class="out">
+        <div class="ph"><strong class="mono" style="font-size: 11.5px; letter-spacing: 0.06em">OUT 1 · LED WALL</strong><span class="mono" style="font-size: 9.5px; color: #c9c4b8">HDMI 2 · 3840×720 @60</span></div>
+        <div class="screen scan" style="aspect-ratio: 3840 / 720"><img src="/_blob/1c3bb24527e64362fe5ce2a7e4fc3e09" alt="LED出力のプレビュー"></div>
+      </div>
+      <div class="out">
+        <div class="ph"><strong class="mono" style="font-size: 11.5px; letter-spacing: 0.06em">OUT 2 · CONTROL</strong><span class="mono" style="font-size: 9.5px; color: #c9c4b8">内蔵ディスプレイ</span></div>
+      </div>
+      <label class="row2"><span>NDI 送出<span class="mono" style="font-size: 9.5px; color: #a3a8a2; margin-left: 8px">SHIKI-MASTER</span></span><input class="cb" type="checkbox" checked="checked"></label>
+      <label class="row2"><span>Syphon 送出</span><input class="cb" type="checkbox"></label>
+      <label class="stack2" style="gap: 4px">
+        <span class="ph"><span>映像の遅延補正</span><span style="display: flex; align-items: baseline; gap: 4px"><span class="num" style="font-size: 20px">+48</span><span class="lbl" style="font-size: 9px">ms</span></span></span>
+        <input class="rng" type="range" min="0" max="200" value="48">
+      </label>
+      <button type="button" class="btn">フラッシュ＋クリックで測定</button>
+    </section>
+
+    <section class="glass checks" aria-label="本番前チェック">
+      <div class="gh"><span class="t"><span class="lbl" style="color: #ece6da">Pre-show checklist</span><span class="jp">本番前チェック</span></span><span class="lbl">6 / 8 ok</span></div>
+      <div class="cl">
+        <sc-for list="{{checks}}" as="c" hint-placeholder-count="8">
+          <div class="ck">
+            <sc-if value="{{c.ok}}" hint-placeholder-val="{{true}}"><svg viewBox="0 0 16 16" fill="none" stroke="#b5d38f" stroke-width="1.6" aria-label="OK"><path d="M3 8.5l3 3 7-7"></path></svg></sc-if>
+            <sc-if value="{{c.ng}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 16 16" fill="none" stroke="#ffc65a" stroke-width="1.6" aria-label="要確認"><path d="M8 2.5l6 11H2z"></path><path d="M8 7v3"></path><path d="M8 11.8v.4"></path></svg></sc-if>
+            <span>{{c.t}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"live":{"editor":"color","default":"#ff7a45","options":["#ff7a45","#9fe6f2","#ece6da"],"section":"Theme"},"cue":{"editor":"color","default":"#9fe6f2","options":["#9fe6f2","#ece6da","#ffc65a"],"section":"Theme"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const sources = [
+      { rank: '1', name: 'ABLETON LINK', detail: 'connected · 3 peers · 126.0', status: 'active', chip: 'okc', cls: 'act' },
+      { rank: '2', name: 'PRO DJ LINK', detail: 'via Beat Link · CDJ ×2 · phrase on', status: 'standby', chip: '', cls: '' },
+      { rank: '3', name: 'MIDI CLOCK', detail: '[DJ MIXER] · 126.1', status: 'standby', chip: '', cls: '' },
+      { rank: '4', name: 'AUDIO FOLLOW', detail: 'IN 1–2 · confidence 91%', status: 'standby', chip: '', cls: '' },
+      { rank: '5', name: 'TAP', detail: 'always available', status: 'manual', chip: '', cls: '' }
+    ];
+    const C = [
+      { t: 'Link 接続', ok: true },
+      { t: '入力レベル', ok: true },
+      { t: 'ブラウザ音声処理 OFF', ok: true },
+      { t: '出力解像度 3840×720', ok: true },
+      { t: '全作品の事前コンパイル', ok: true },
+      { t: '緊急シーンの設定', ok: true },
+      { t: '遅延補正が未測定', ok: false },
+      { t: 'BLOOM が LED の端で切れる', ok: false }
+    ];
+    const checks = C.map((c) => ({ ...c, ng: !c.ok }));
+    return { live: this.props.live ?? '#ff7a45', cue: this.props.cue ?? '#9fe6f2', sources, checks };
+  }
+}
+</script>
+</body>
+</html>

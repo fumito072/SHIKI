@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>SHIKI Perform — Immersive</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./shiki.css">
+<link rel="stylesheet" href="./imm.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght,ROND@400..900,100&amp;family=Martian+Mono:wdth,wght@75..112.5,200..800&amp;family=Zen+Kaku+Gothic+New:wght@300;400;500;700&amp;family=Shippori+Mincho:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#050607}
+a{color:#bfeef6}a:hover{color:#e2f8fb}
+.ui{grid-template-columns:290px minmax(0,1fr) 290px;grid-template-rows:auto auto minmax(150px,1fr) auto auto}
+.deck{gap:8px;align-self:start}
+.dh{display:flex;align-items:baseline;gap:10px}
+.dk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.dk .screen{aspect-ratio:16/9}
+.vms{display:flex;gap:4px}
+.audio{grid-column:3;grid-row:3;align-self:start}
+.meters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;justify-items:center}
+.mtitle{grid-column:2;grid-row:2 / span 2;align-self:center;justify-self:start;margin-left:6%;display:flex;flex-direction:column;gap:8px;pointer-events:none;text-shadow:0 1px 18px rgba(0,0,0,.6)}
+.mt{font-family:var(--f-name);font-stretch:112.5%;font-weight:200;font-size:44px;letter-spacing:.34em;line-height:1}
+.rule{width:28px;height:1px;background:rgba(236,230,218,.6);margin:6px 0}
+.bottom{grid-column:1 / -1;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,.95fr) minmax(0,.9fr) minmax(0,.72fr);gap:14px;align-items:end}
+.lgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.lit{display:flex;flex-direction:column;gap:4px;position:relative;min-width:0}
+.lit .screen{aspect-ratio:1.45}
+.lit.air .screen{outline:1px solid var(--live);box-shadow:0 0 16px color-mix(in srgb,var(--live) 35%,transparent)}
+.lit.cue .screen{outline:1px dashed var(--cue)}
+.lit .badge{position:absolute;top:5px;left:5px;z-index:2;background:rgba(5,6,7,.7);border-color:var(--acc);color:var(--acc)}
+.mix{gap:12px}
+.ph2{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}
+.kgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 2px}
+.kn{display:flex;flex-direction:column;align-items:center;gap:2px}
+.kn svg{width:42px;height:42px}
+.fxg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.fxc{display:flex;flex-direction:column;align-items:center;gap:6px;border-left:1px solid rgba(236,230,218,.12);padding:0 2px}
+.fxc:first-child{border-left:0}
+.last{grid-column:1 / -1;display:flex;justify-content:space-between;align-items:stretch;gap:14px;flex-wrap:wrap}
+.ai{flex:0 1 640px;flex-direction:row;align-items:center;gap:12px;padding:10px 12px}
+.ai input{flex:1;font-family:var(--f-jp2);font-size:14px}
+.emg{flex:0 1 520px}
+@media (max-width:1180px){.ui{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.mtitle{grid-column:1 / -1;grid-row:auto;margin-left:0}.audio{grid-column:auto;grid-row:auto}.bottom{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (max-width:760px){.ui{grid-template-columns:minmax(0,1fr)}.bottom{grid-template-columns:minmax(0,1fr)}.lgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.emg{flex-wrap:wrap}}
+</style>
+</helmet>
+<div class="app imm" style="--live: {{live}}; --cue: {{cue}}">
+  <img class="bg" src="/_blob/1c3bb24527e64362fe5ce2a7e4fc3e09" alt="マスター出力：MOONSEA（霧の海から昇る暗い球体と、手前を横切る銀の粒子の波）">
+  <div class="vig"></div>
+  <div class="scanl"></div>
+
+  <div class="ui">
+    <header class="topi">
+      <div class="bl">
+        <span class="wm">SHIKI</span>
+        <i class="slash" aria-hidden="true"></i>
+        <span class="stack2" style="gap: 3px"><span class="ttl">PERFORM</span><span class="lbl" style="font-size: 8.5px; letter-spacing: 0.2em">Visuals for music</span></span>
+        <nav class="mseg" aria-label="セッションモード"><a href="PerformImmersive.dc.html" class="on" aria-current="page">DJ</a><a href="BandImm.dc.html">BAND</a></nav>
+      </div>
+      <div class="clk">
+        <span class="mono" style="display: flex; align-items: center; gap: 8px; font-size: 11.5px">
+          <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="6" cy="8" r="3.5"></circle><circle cx="10" cy="8" r="3.5"></circle></svg>
+          Ableton Link<i class="dot breathe" style="margin-left: 2px"></i>
+        </span>
+        <i class="sep"></i>
+        <span style="display: flex; align-items: flex-end; gap: 6px"><span class="num" style="font-size: 28px">126.0</span><span class="lbl" style="padding-bottom: 2px">BPM</span></span>
+        <span style="display: flex; align-items: flex-end; gap: 6px"><span class="num" style="font-size: 28px">17.3</span><span class="lbl" style="padding-bottom: 2px">Bar</span></span>
+        <div class="stack2" style="gap: 7px">
+          <div class="bd" aria-label="3拍目">
+            <sc-for list="{{beats}}" as="g" hint-placeholder-count="4"><span><sc-for list="{{g}}" as="d" hint-placeholder-count="4"><i class="{{d}}"></i></sc-for></span></sc-for>
+          </div>
+          <div class="cells" aria-label="フレーズの17小節目"><sc-for list="{{phrase}}" as="c" hint-placeholder-count="32"><i class="{{c}}"></i></sc-for></div>
+        </div>
+        <div style="display: flex; gap: 6px">
+          <button type="button" class="btn" style="min-width: 54px">Tap</button>
+          <button type="button" class="btn" aria-label="テンポを遅らせる" style="width: 32px; padding: 0">−</button>
+          <span class="lbl" style="align-self: center">Nudge</span>
+          <button type="button" class="btn" aria-label="テンポを進める" style="width: 32px; padding: 0">+</button>
+          <button type="button" class="btn">Downbeat</button>
+        </div>
+      </div>
+      <div class="st">
+        <span class="mono" style="font-size: 11px; letter-spacing: 0.04em">LED 3840×720 · 60fps · GPU 41%</span>
+        <nav style="display: flex; gap: 2px" aria-label="画面">
+          <a href="StudioImm.dc.html" class="icobtn" aria-label="Studio">
+            <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="8" cy="8" r="5.5"></circle><circle cx="8" cy="8" r="1.6"></circle></svg>
+          </a>
+          <a href="SetupImm.dc.html" class="icobtn" aria-label="セットアップ">
+            <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12"></path><circle cx="5" cy="4" r="1.5" fill="#050607"></circle><circle cx="11" cy="8" r="1.5" fill="#050607"></circle><circle cx="7" cy="12" r="1.5" fill="#050607"></circle></svg>
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <section class="glass deck" style="grid-column: 1; grid-row: 2" aria-label="デッキA">
+      <div class="dh"><span class="dl">A</span><span class="lbl" style="color: #d6d1c6">Deck A</span><span class="onair">ON AIR</span></div>
+      <div class="under"></div>
+      <div class="dk">
+        <div class="screen scan air-out"><img src="/_blob/1c3bb24527e64362fe5ce2a7e4fc3e09" alt="DECK A：MOONSEA"></div>
+        <div class="vms"><div class="vm" style="--v: 80%; --lo: 34%; --pk: 88%; --d: .476s"><i></i><b></b></div><div class="vm" style="--v: 66%; --lo: 28%; --pk: 74%; --d: .952s"><i></i><b></b></div></div>
+      </div>
+      <div class="ph" style="align-items: flex-end">
+        <span class="stack2" style="gap: 2px"><strong class="name" style="font-size: 13px">MOONSEA</strong><span class="lbl" style="font-size: 9px">deep · v7</span></span>
+        <span class="jp2" style="font-size: 15px; color: #d6d1c6">月海</span>
+      </div>
+    </section>
+
+    <div class="mtitle" aria-hidden="true">
+      <sc-if value="{{overlay}}" hint-placeholder-val="{{true}}">
+        <div class="mt">MASTER</div>
+        <div class="lbl" style="letter-spacing: 0.42em; color: #d6d1c6">Live visual output</div>
+        <i class="rule"></i>
+        <div style="font-family: var(--f-ui); font-weight: 300; font-size: 14px; letter-spacing: 0.5em; color: #ece6da">音が、かたちになる</div>
+        <div class="lbl" style="letter-spacing: 0.42em; color: #d6d1c6">Sound becomes form</div>
+      </sc-if>
+    </div>
+
+    <section class="glass deck" style="grid-column: 3; grid-row: 2" aria-label="デッキB">
+      <div class="dh"><span class="dl">B</span><span class="lbl" style="color: #d6d1c6">Deck B</span><span class="oncue">CUE</span></div>
+      <div class="under cue"></div>
+      <div class="dk">
+        <div class="screen scan cue-out"><img src="/_blob/03c9c29c4eece0cb452abc40871c91b4" alt="DECK B：LATTICE"></div>
+        <div class="vms"><div class="vm" style="--v: 58%; --lo: 20%; --pk: 70%; --d: .714s"><i></i><b></b></div><div class="vm" style="--v: 44%; --lo: 12%; --pk: 60%; --d: 1.2s"><i></i><b></b></div></div>
+      </div>
+      <div class="ph" style="align-items: flex-end">
+        <span class="stack2" style="gap: 2px"><strong class="name" style="font-size: 13px">LATTICE</strong><span class="lbl" style="font-size: 9px">tense · AI edit v4</span></span>
+        <span class="jp2" style="font-size: 15px; color: #d6d1c6">格子</span>
+      </div>
+    </section>
+
+    <section class="glass audio" aria-label="オーディオ">
+      <div class="ph"><span class="lbl" style="color: #ece6da">Audio</span><span class="mono" style="font-size: 10px; color: #a3a8a2">energy .72 ↗</span></div>
+      <div class="meters">
+        <sc-for list="{{meters}}" as="m" hint-placeholder-count="4">
+          <div class="stack2" style="align-items: center; gap: 6px">
+            <span class="lbl" style="font-size: 9px">{{m.n}}</span>
+            <div class="vm" style="--h: 96px; --v: {{m.v}}%; --lo: {{m.lo}}%; --pk: {{m.pk}}%; --d: {{m.d}}s"><i></i><b></b></div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <div class="bottom">
+      <section class="glass" aria-label="ライブラリ">
+        <div class="ph">
+          <span style="display: flex; gap: 10px; align-items: baseline"><span class="lbl" style="color: #ece6da">Library</span><span style="font-size: 11px; color: #a3a8a2">ライブラリ</span></span>
+          <span style="display: flex; align-items: center; gap: 10px">
+            <span class="jp2" style="font-size: 12px; color: #d6d1c6">上昇中 → <span style="color: var(--acc)">SCANLINE · STRATA</span></span>
+            <button type="button" class="icobtn" aria-label="検索"><svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5L14 14"></path></svg></button>
+          </span>
+        </div>
+        <div class="lgrid">
+          <sc-for list="{{lib}}" as="w" hint-placeholder-count="10">
+            <article class="lit {{w.st}}">
+              <div class="screen scan"><img src="{{w.img}}" alt="{{w.n}}"></div>
+              <sc-if value="{{w.isNext}}" hint-placeholder-val="{{false}}"><span class="chip badge">AI: Next</span></sc-if>
+              <strong class="name" style="font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{w.n}}</strong>
+              <span class="ph"><span class="lbl" style="font-size: 8.5px">{{w.tag}}</span><span class="edots"><sc-for list="{{w.dots}}" as="d" hint-placeholder-count="10"><i class="{{d}}" style="width: 3px; height: 3px"></i></sc-for></span></span>
+            </article>
+          </sc-for>
+        </div>
+      </section>
+
+      <section class="glass mix" aria-label="トランジション">
+        <div class="ph2">
+          <label class="stack2" style="gap: 4px"><span class="lbl">Transition <span style="letter-spacing: 0">トランジション</span></span>
+            <select class="sel"><option>DISSOLVE</option><option>LUMA WIPE</option><option>FEEDBACK MELT</option><option>DISPLACE</option><option>CUT</option></select>
+          </label>
+          <div class="stack2" style="gap: 4px"><span class="lbl">Phrase <span style="letter-spacing: 0">フレーズ</span></span><div class="pq" role="group" aria-label="切替の区切り"><button type="button" class="on">16 bars</button><button type="button">32 bars</button></div></div>
+        </div>
+        <div style="display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center">
+          <span class="name" style="font-size: 15px; font-weight: 300; color: var(--live)">A</span>
+          <div class="stack2" style="gap: 2px"><input class="rng xf" type="range" min="0" max="100" value="46" aria-label="クロスフェーダー"><div class="ruler"></div></div>
+          <span class="name" style="font-size: 15px; font-weight: 300; color: var(--cue)">B</span>
+        </div>
+        <div class="ph"><span class="mono" style="font-size: 10px; color: #a3a8a2">次のフレーズ頭 · あと 7 小節</span><button type="button" class="btn live">Take → B</button></div>
+      </section>
+
+      <section class="glass" aria-label="マクロ">
+        <div class="ph"><span style="display: flex; gap: 8px; align-items: baseline"><span class="lbl" style="color: #ece6da">Macro</span><span style="font-size: 11px; color: #a3a8a2">マクロ</span></span><span class="mono" style="font-size: 10.5px; letter-spacing: 0.08em">MOONSEA</span></div>
+        <div class="kgrid">
+          <sc-for list="{{knobs}}" as="k" hint-placeholder-count="8">
+            <div class="kn">
+              <svg viewBox="0 0 44 44" aria-hidden="true">
+                <path class="kn-track" d="{{k.track}}"></path>
+                <path class="kn-val" d="{{k.val}}"></path>
+                <circle cx="22" cy="22" r="10" fill="rgba(5,6,7,.7)" stroke="rgba(236,230,218,.22)"></circle>
+                <circle cx="{{k.px}}" cy="{{k.py}}" r="1.8" fill="#ece6da"></circle>
+              </svg>
+              <span class="lbl" style="font-size: 8.5px">{{k.n}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section class="glass" aria-label="エフェクト">
+        <div class="ph"><span style="display: flex; gap: 8px; align-items: baseline"><span class="lbl" style="color: #ece6da">FX</span><span style="font-size: 11px; color: #a3a8a2">エフェクト</span></span></div>
+        <div class="fxg">
+          <sc-for list="{{fx}}" as="f" hint-placeholder-count="3">
+            <div class="fxc">
+              <span class="lbl" style="font-size: 8.5px">{{f.n}}</span>
+              <svg viewBox="0 0 44 44" style="width: 42px; height: 42px" aria-hidden="true">
+                <path class="kn-track" d="{{f.track}}"></path>
+                <path class="kn-val" d="{{f.val}}"></path>
+                <circle cx="22" cy="22" r="10" fill="rgba(5,6,7,.7)" stroke="rgba(236,230,218,.22)"></circle>
+                <circle cx="{{f.px}}" cy="{{f.py}}" r="1.8" fill="#ece6da"></circle>
+              </svg>
+              <button type="button" class="tog {{f.cls}}" aria-pressed="{{f.on}}">{{f.lbl}}</button>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </div>
+
+    <div class="last">
+      <section class="glass ai" aria-label="AIプロンプト">
+        <svg viewBox="0 0 24 24" style="width: 22px; height: 22px; flex: none" fill="currentColor" aria-hidden="true"><circle cx="12" cy="3.5" r="1.4"></circle><circle cx="18" cy="6" r="1.1"></circle><circle cx="20.5" cy="12" r="1.4"></circle><circle cx="18" cy="18" r="1.1"></circle><circle cx="12" cy="20.5" r="1.4"></circle><circle cx="6" cy="18" r="1.1"></circle><circle cx="3.5" cy="12" r="1.4"></circle><circle cx="6" cy="6" r="1.1"></circle><circle cx="12" cy="12" r="2" style="fill: var(--acc)"></circle></svg>
+        <span class="stack2" style="gap: 1px; flex: none"><span class="lbl" style="font-size: 9px">AI prompt</span><span style="font-size: 10px; color: #a3a8a2">AIプロンプト</span></span>
+        <label for="aiq" class="sr">AIへの指示</label>
+        <input id="aiq" type="text" value="キックで奥にズームして">
+        <span class="mono" style="font-size: 10.5px; flex: none; color: var(--cue)">→ DECK B</span>
+        <button type="button" class="icobtn" aria-label="送る" style="background: rgba(236,230,218,.1); border-color: rgba(236,230,218,.25)"><svg class="ico" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2 2.5l12 5.5-12 5.5 2.2-5.5z"></path></svg></button>
+      </section>
+      <section class="glass emg" aria-label="緊急操作">
+        <button type="button" class="ebtn"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="3" y="4" width="14" height="12" rx="1"></rect><path d="M3 10h14v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" fill="currentColor"></path></svg><span class="stack2" style="gap: 0"><span class="mono">BLACKOUT</span><span class="jp">ブラックアウト</span></span></button>
+        <button type="button" class="ebtn"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M10 2v16M3 6l14 8M3 14l14-8"></path></svg><span class="stack2" style="gap: 0"><span class="mono">FREEZE</span><span class="jp">フリーズ</span></span></button>
+        <button type="button" class="ebtn"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M10 2.5l6 2.2v5c0 3.8-2.6 6.4-6 7.8-3.4-1.4-6-4-6-7.8v-5z"></path></svg><span class="stack2" style="gap: 0"><span class="mono">SAFE</span><span class="jp">セーフモード</span></span></button>
+        <button type="button" class="ebtn"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="3" y="3" width="14" height="14" rx="1"></rect><path d="M7 7v6h6"></path></svg><span class="stack2" style="gap: 0"><span class="mono">LOGO</span><span class="jp">ロゴ表示</span></span></button>
+      </section>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"live":{"editor":"color","default":"#ff7a45","options":["#ff7a45","#9fe6f2","#ece6da"],"section":"Theme"},"cue":{"editor":"color","default":"#9fe6f2","options":["#9fe6f2","#ece6da","#ffc65a"],"section":"Theme"},"overlay":{"editor":"boolean","default":true,"section":"Theme"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  pt(v, r) {
+    const a = (-135 + v * 270) * Math.PI / 180;
+    return [22 + r * Math.sin(a), 22 - r * Math.cos(a)];
+  }
+  arc(v) {
+    const r = 18;
+    const s = this.pt(0, r), e = this.pt(Math.max(v, 0.001), r);
+    const large = v * 270 > 180 ? 1 : 0;
+    return 'M' + s[0].toFixed(2) + ' ' + s[1].toFixed(2) + ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + e[0].toFixed(2) + ' ' + e[1].toFixed(2);
+  }
+  knob(n, v) {
+    const p = this.pt(v, 6.5);
+    return { n, v, track: this.arc(1), val: this.arc(v), px: p[0].toFixed(2), py: p[1].toFixed(2) };
+  }
+  renderVals() {
+    const beats = [0, 1, 2, 3].map((b) => [0, 1, 2, 3].map((s) => {
+      const i = b * 4 + s;
+      return i < 9 ? 'dn' : i === 9 ? 'on pulse' : '';
+    }));
+    const phrase = Array.from({ length: 32 }, (_, i) => {
+      const mk = i % 8 === 0 ? ' mk' : '';
+      if (i < 16) return 'dn' + mk;
+      if (i === 16) return 'on pulse' + mk;
+      return mk.trim();
+    });
+    const meters = [
+      { n: 'Low', v: 84, lo: 36, pk: 90, d: 0.476 },
+      { n: 'Mid', v: 64, lo: 30, pk: 72, d: 0.952 },
+      { n: 'High', v: 52, lo: 14, pk: 66, d: 0.714 },
+      { n: 'Onset', v: 92, lo: 4, pk: 96, d: 0.238 }
+    ];
+    const now = 0.72;
+    const L = [
+      { n: 'MOONSEA', img: '/_blob/1c3bb24527e64362fe5ce2a7e4fc3e09', tag: 'deep · 07', e: [0.4, 0.8], st: 'air' },
+      { n: 'LATTICE', img: '/_blob/03c9c29c4eece0cb452abc40871c91b4', tag: 'tense · 06', e: [0.5, 0.9], st: 'cue' },
+      { n: 'SCANLINE', img: '/_blob/8745d6a3a561341a329143d0b30fe8bc', tag: 'drive · 07', e: [0.7, 1], st: 'next' },
+      { n: 'STRATA', img: '/_blob/2c35b244d36c9b18427bdd24c9f80db0', tag: 'drive · 05', e: [0.5, 0.8], st: 'next' },
+      { n: 'SWARM', img: '/_blob/6632d8982bda7aa8c44947bb50f841f0', tag: 'air · 05', e: [0.4, 0.8], st: '' },
+      { n: 'MONOLITH', img: '/_blob/30bc4d6444678317842799c6622dcb34', tag: 'dark · 04', e: [0.1, 0.4], st: '' },
+      { n: 'INK TIDE', img: '/_blob/2f1bb7ac6667b106b669d6f59b81a8ac', tag: 'calm · 02', e: [0.2, 0.5], st: '' },
+      { n: 'BLOOM', img: '/_blob/f6ccdeb0ef2862690402131c52d5a468', tag: 'soft · 03', e: [0.2, 0.6], st: '' },
+      { n: 'CAUSTICS', img: '/_blob/20f458895faf32a4cd6f2e93f2f3417e', tag: 'still · 01', e: [0, 0.3], st: '' },
+      { n: 'MILK & INK', img: '/_blob/09497ebaad8d1fe39614112107f7bfa5', tag: 'fluid · 05', e: [0.3, 0.6], st: '' }
+    ];
+    const lib = L.map((w) => ({
+      ...w,
+      isNext: w.st === 'next',
+      dots: Array.from({ length: 10 }, (_, i) => {
+        const x = (i + 0.5) / 10, inR = x >= w.e[0] && x <= w.e[1];
+        return (inR ? 'in' : '') + (inR && Math.abs(x - now) < 0.05 ? ' now' : '');
+      })
+    }));
+    const knobs = [['Energy', 0.72], ['Density', 0.48], ['Drift', 0.36], ['Hue', 0.18], ['Chaos', 0.64], ['Zoom', 0.52], ['Grain', 0.28], ['Feedback', 0.41]].map((k) => this.knob(k[0], k[1]));
+    const fx = [['Bloom', 0.45, true], ['Trails', 0.3, true], ['Displace', 0.6, false]].map((f) => ({ ...this.knob(f[0], f[1]), on: f[2] ? 'true' : 'false', cls: f[2] ? '' : 'off', lbl: f[2] ? 'ON' : 'OFF' }));
+    return { live: this.props.live ?? '#ff7a45', cue: this.props.cue ?? '#9fe6f2', overlay: this.props.overlay ?? true, beats, phrase, meters, lib, knobs, fx };
+  }
+}
+</script>
+</body>
+</html>

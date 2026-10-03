@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>SHIKI Perform — DJ</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./shiki.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght,ROND@400..900,100&amp;family=Martian+Mono:wdth,wght@75..112.5,300..800&amp;family=Zen+Kaku+Gothic+New:wght@400;500;700&amp;family=Shippori+Mincho:wght@400;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300..700&amp;family=Instrument+Serif:ital@0;1&amp;family=Zen+Old+Mincho:wght@400;600&amp;family=Sixtyfour&amp;family=DotGothic16&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#08090a}
+a{color:#8cbcff}a:hover{color:#c2dcff}
+.perf{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:10px;flex:1}
+.master{aspect-ratio:3840/720}
+.safe{position:absolute;inset:8% 3%;border:1px dashed #ffffff38;pointer-events:none}
+.cross{position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;pointer-events:none;background:linear-gradient(#ffffff70,#ffffff70) center/1px 100% no-repeat,linear-gradient(#ffffff70,#ffffff70) center/100% 1px no-repeat}
+.mixrow{display:grid;grid-template-columns:minmax(0,1fr) 240px minmax(0,1fr);gap:10px}
+.deck{padding:10px;gap:8px}
+.deck .screen{aspect-ratio:16/9}
+.mix{padding:10px;gap:8px;justify-content:space-between}
+select.sel{font-family:var(--f-mono);font-stretch:var(--mono-st);font-size:10.5px;letter-spacing:.06em;background:#0b0d0e;color:var(--tx);border:1px solid var(--ln2);border-radius:2px;height:32px;padding:0 8px;width:100%}
+.q{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--ln2);border-radius:2px;overflow:hidden}
+.q button{font-family:var(--f-mono);font-stretch:var(--mono-st);font-size:10px;background:transparent;color:var(--mu);border:0;border-right:1px solid var(--ln2);height:28px;cursor:pointer;padding:0}
+.q button:last-child{border-right:0}
+.q button.on{background:var(--tx);color:var(--bg);font-weight:700}
+.take{height:52px;width:100%;font-size:13px;background:var(--cue);color:#03101f;border:0;font-weight:700}
+.take:hover{background:var(--cue);color:#03101f;filter:brightness(1.08)}
+.libgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.li{display:flex;flex-direction:column;gap:6px;background:#121416;border:1px solid var(--ln);border-radius:2px;padding:5px 5px 7px;position:relative;min-width:0}
+.li .screen{aspect-ratio:2/1}
+.li.air{border-color:var(--live)}
+.li.cue{border-color:var(--cue)}
+.li.next{border-color:var(--cue);border-style:dashed}
+.li .badge{position:absolute;top:9px;left:9px;z-index:2}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filters button{font-family:var(--f-mono);font-stretch:var(--mono-st);font-size:10px;letter-spacing:.08em;background:transparent;color:var(--mu);border:1px solid var(--ln2);border-radius:2px;height:26px;padding:0 9px;cursor:pointer}
+.filters button.on{color:var(--bg);background:var(--tx);border-color:var(--tx)}
+.knobs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 4px}
+.knob{display:flex;flex-direction:column;align-items:center;gap:1px}
+.knob svg{width:54px;height:54px}
+.map{font-family:var(--f-mono);font-stretch:var(--mono-st);font-size:9px;letter-spacing:.05em;color:var(--dm);border:1px solid #2c3135;border-radius:2px;padding:0 5px;margin-top:3px}
+.map.on{color:var(--live);border-color:#5a3424}
+.fx{display:grid;grid-template-columns:auto minmax(0,1fr) 128px 36px;gap:6px 8px;align-items:center}
+.fx label{display:contents}
+.fill-live{fill:var(--live)}
+.ai-in{display:flex;gap:6px}
+.ai-in input{flex:1;min-width:0;height:38px;background:#0b0d0e;border:1px solid #33393e;border-radius:2px;color:var(--tx);font-family:var(--f-jp2);font-size:13.5px;padding:0 10px}
+.log{display:flex;flex-direction:column;gap:5px;font-size:12.5px}
+.log div{display:flex;gap:10px}
+@media (max-width:1100px){.perf{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.mixrow{grid-template-columns:minmax(0,1fr)}.libgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.panic{margin-left:0}}
+</style>
+</helmet>
+<div class="app {{ts}}" style="--live: {{live}}; --cue: {{cue}}">
+
+<header class="top">
+  <div class="brand">
+    <div class="wordmark">SHIKI</div>
+    <nav class="nav" aria-label="画面"><a href="Main.dc.html" class="on" aria-current="page">Perform</a><a href="Studio.dc.html">Studio</a><a href="Session.dc.html">Setup</a><a href="Type.dc.html">Type</a></nav>
+  </div>
+  <div class="seg" role="group" aria-label="セッションモード">
+    <button type="button">SOLO</button>
+    <a href="Main.dc.html" class="on" aria-current="true">DJ</a>
+    <a href="PerformBand.dc.html">BAND</a>
+  </div>
+  <div class="clock">
+    <div class="stack2">
+      <span class="lbl"><span class="idx">01</span>Clock</span>
+      <span class="mono" style="display: flex; align-items: center; gap: 7px; font-size: 11.5px"><i class="dot breathe"></i>LINK · 3 peers</span>
+    </div>
+    <div style="display: flex; align-items: flex-end; gap: 7px">
+      <span class="num" style="font-size: 46px">126.0</span>
+      <span class="lbl" style="padding-bottom: 3px">BPM</span>
+    </div>
+    <div class="stack2">
+      <span style="display: flex; align-items: baseline; gap: 6px"><span class="lbl">Bar</span><span class="num" style="font-size: 22px">17.3</span></span>
+      <div class="b16" aria-label="3拍目">
+        <span><i class="dn"></i><i class="dn"></i><i class="dn"></i><i class="dn"></i></span>
+        <span><i class="dn"></i><i class="dn"></i><i class="dn"></i><i class="dn"></i></span>
+        <span><i class="on"></i><i class="on pulse"></i><i></i><i></i></span>
+        <span><i></i><i></i><i></i><i></i></span>
+      </div>
+    </div>
+    <div class="stack2">
+      <span class="lbl">Phrase 2/4 · 32 bars</span>
+      <div class="cells" aria-label="フレーズの17小節目">
+        <sc-for list="{{phrase}}" as="c" hint-placeholder-count="32"><i class="{{c}}"></i></sc-for>
+      </div>
+    </div>
+    <div class="nudge">
+      <button type="button" class="btn" style="width: 54px">TAP</button>
+      <button type="button" class="btn" aria-label="テンポを遅らせる">−</button>
+      <button type="button" class="btn" aria-label="テンポを進める">+</button>
+      <button type="button" class="btn" aria-label="1拍目に合わせる" style="width: 40px; font-weight: 700">1</button>
+    </div>
+  </div>
+  <div class="stack2">
+    <span class="lbl">Out 1 · LED 3840×720</span>
+    <span class="mono" style="font-size: 11.5px">60.0 fps · GPU 41% · +48 ms</span>
+  </div>
+  <div class="panic" role="group" aria-label="緊急操作">
+    <button type="button" class="btn black">Blackout</button>
+    <button type="button" class="btn">Freeze</button>
+    <button type="button" class="btn">Safe</button>
+    <button type="button" class="btn">Logo</button>
+  </div>
+</header>
+
+<div class="perf">
+  <div class="col">
+    <section class="screen scan master onair" aria-label="マスター出力">
+      <img src="/_blob/03c9c29c4eece0cb452abc40871c91b4" alt="マスター出力：LATTICE">
+      <div class="hud"><i></i><i></i><i></i><i></i></div>
+      <div class="safe"></div>
+      <div class="cross"></div>
+      <div class="ovl t">
+        <span style="display: flex; gap: 8px; align-items: center"><span class="chip c-live">On Air</span><span class="lbl" style="color: #ece6da"><span class="idx">02</span>Master</span></span>
+        <span class="mono" style="font-size: 10.5px; letter-spacing: 0.06em">FX · FEEDBACK .35 · RGB SPLIT 1/4</span>
+      </div>
+      <div class="ovl b">
+        <span class="mono" style="font-size: 10.5px; letter-spacing: 0.06em">LED WALL 3840×720 · SAFE AREA</span>
+        <span class="num" style="font-size: 18px">00:42:17</span>
+      </div>
+    </section>
+
+    <div class="mixrow">
+      <section class="panel deck" aria-label="デッキA">
+        <div class="ph">
+          <span style="display: flex; gap: 8px; align-items: baseline"><span class="chip c-live">A · On air</span><strong class="name" style="font-size: 17px">LATTICE</strong><span class="jp2" style="font-size: 13px; color: #c9c4b8">格子</span></span>
+          <span class="lbl">preset · build</span>
+        </div>
+        <div class="screen scan onair" style="aspect-ratio: 16 / 9"><img src="/_blob/03c9c29c4eece0cb452abc40871c91b4" alt="DECK A：LATTICE"><div class="hud"><i></i><i></i><i></i><i></i></div></div>
+        <div class="ph">
+          <span class="edots" aria-label="エネルギー帯 0.5〜0.9"><i></i><i></i><i></i><i></i><i></i><i class="in"></i><i class="in now"></i><i class="in"></i><i class="in"></i><i></i></span>
+          <span class="lbl">sync · v7</span>
+        </div>
+      </section>
+
+      <section class="panel mix" aria-label="ミキサー">
+        <div class="stack2">
+          <div class="ph"><span class="lbl t-live">A</span><span class="lbl"><span class="idx">03</span>Crossfade</span><span class="lbl t-cue">B</span></div>
+          <input class="rng xf" type="range" min="0" max="100" value="0" aria-label="クロスフェーダー">
+          <div class="ruler"></div>
+        </div>
+        <label class="stack2" style="gap: 4px"><span class="lbl">Transition</span>
+          <select class="sel"><option>LUMA WIPE · 8 bars</option><option>DISSOLVE</option><option>FEEDBACK MELT</option><option>DISPLACE</option><option>CUT</option></select>
+        </label>
+        <div class="stack2" style="gap: 4px">
+          <span class="lbl">Quantize</span>
+          <div class="q" role="group" aria-label="切替タイミング"><button type="button">FREE</button><button type="button">BEAT</button><button type="button">BAR</button><button type="button">16</button><button type="button" class="on">32</button></div>
+        </div>
+        <button type="button" class="btn take">Take → B</button>
+        <span class="mono" style="font-size: 10.5px; color: #a3a8a2; text-align: center">次のフレーズ頭で切替 · あと 15 小節</span>
+      </section>
+
+      <section class="panel deck" aria-label="デッキB">
+        <div class="ph">
+          <span style="display: flex; gap: 8px; align-items: baseline"><span class="chip c-cue">B · Cue</span><strong class="name" style="font-size: 17px">SWARM</strong><span class="jp2" style="font-size: 13px; color: #c9c4b8">群れ</span></span>
+          <span class="lbl t-cue">AI edit · v4</span>
+        </div>
+        <div class="screen scan oncue" style="aspect-ratio: 16 / 9"><img src="/_blob/6632d8982bda7aa8c44947bb50f841f0" alt="DECK B：SWARM"><div class="hud"><i></i><i></i><i></i><i></i></div></div>
+        <div class="ph">
+          <span class="jp2" style="font-size: 12.5px; color: #d6d1c6">「キックで奥にズーム」反映済み</span>
+          <span style="display: flex; gap: 6px"><button type="button" class="btn" style="height: 28px">戻す</button><button type="button" class="btn" style="height: 28px">採用</button></span>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel" aria-label="ライブラリ">
+      <div class="ph" style="flex-wrap: wrap">
+        <span style="display: flex; gap: 10px; align-items: baseline"><span class="lbl"><span class="idx">04</span></span><strong class="name" style="font-size: 17px">LIBRARY</strong><span class="lbl">10 instruments</span></span>
+        <div class="filters" role="group" aria-label="絞り込み">
+          <button type="button" class="on">ALL</button><button type="button">DEEP</button><button type="button">DRIVE</button><button type="button">PEAK</button><button type="button">FREE TEMPO</button><button type="button">CAMERA</button>
+        </div>
+      </div>
+      <div class="libgrid">
+        <sc-for list="{{lib}}" as="w" hint-placeholder-count="10">
+          <article class="li {{w.st}}">
+            <div class="screen scan"><img src="{{w.img}}" alt="{{w.n}}"></div>
+            <sc-if value="{{w.isAir}}" hint-placeholder-val="{{false}}"><span class="chip c-live badge">A</span></sc-if>
+            <sc-if value="{{w.isCue}}" hint-placeholder-val="{{false}}"><span class="chip c-cue badge">B</span></sc-if>
+            <sc-if value="{{w.isNext}}" hint-placeholder-val="{{false}}"><span class="chip badge" style="background: #08090a; border-color: var(--cue); color: var(--cue)">AI next</span></sc-if>
+            <div class="ph" style="padding: 0 2px; align-items: baseline"><strong class="name" style="font-size: 12.5px">{{w.n}}</strong><span class="jp2" style="font-size: 12px; color: #c9c4b8">{{w.j}}</span></div>
+            <div class="ph" style="padding: 0 2px">
+              <span class="edots" aria-label="エネルギー帯"><sc-for list="{{w.dots}}" as="d" hint-placeholder-count="10"><i class="{{d}}"></i></sc-for></span>
+              <span class="lbl" style="font-size: 9px">{{w.t}}</span>
+            </div>
+            <span class="lbl" style="font-size: 9px; padding: 0 2px">{{w.tag}}</span>
+          </article>
+        </sc-for>
+      </div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="panel" aria-label="音の解析">
+      <div class="ph"><span class="lbl"><span class="idx">05</span>Analysis · 64 bars</span><span class="chip">Energy .72 ↗ build</span></div>
+      <svg class="terrain" viewBox="0 0 356 64" preserveAspectRatio="none" height="64" aria-hidden="true">
+        <defs><pattern id="mdots" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1.2" cy="1.2" r="0.75" fill="#ece6da" fill-opacity="0.3"></circle></pattern></defs>
+        <path class="grid" d="{{gridD}}"></path>
+        <path d="{{tArea}}" fill="url(#mdots)"></path>
+        <path class="echo" d="{{tLine}}" transform="translate(0 14)" stroke-opacity="0.14"></path>
+        <path class="echo" d="{{tLine}}" transform="translate(0 7)" stroke-opacity="0.32"></path>
+        <path class="line" d="{{tLine}}"></path>
+        <line class="thr" x1="0" y1="20" x2="356" y2="20"></line>
+      </svg>
+      <svg class="spec" viewBox="0 0 356 40" preserveAspectRatio="none" height="40" aria-hidden="true">
+        <path d="{{specRest}}" fill="#3a4045"></path>
+        <path d="{{specLo}}" class="fill-live"></path>
+        <path class="env" d="{{specEnv}}"></path>
+      </svg>
+      <div class="ph"><span class="lbl t-live">Low .82</span><span class="lbl">Mid .58</span><span class="lbl">High .44</span></div>
+      <p class="jp2" style="margin: 0; font-size: 13px; line-height: 1.6; color: #d6d1c6">エネルギーが上がってきています（.58 → .72）。DRIVE〜PEAK帯の <span class="t-cue">SCANLINE</span> と <span class="t-cue">STRATA</span> を次の候補にしました。</p>
+    </section>
+
+    <section class="panel" aria-label="マクロ">
+      <div class="ph"><span class="lbl"><span class="idx">06</span>Macros · <span class="t-live">Deck A</span></span><span class="lbl">MIDI · [CONTROLLER]</span></div>
+      <div class="knobs">
+        <sc-for list="{{knobs}}" as="k" hint-placeholder-count="8">
+          <div class="knob">
+            <svg viewBox="0 0 44 44" aria-hidden="true">
+              <path class="kn-track" d="{{k.track}}"></path>
+              <path class="kn-val {{k.mc}}" d="{{k.val}}"></path>
+              <circle cx="22" cy="22" r="10" fill="#121417" stroke="#30353a"></circle>
+              <circle cx="{{k.px}}" cy="{{k.py}}" r="1.8" fill="#ece6da"></circle>
+            </svg>
+            <span class="mono" style="font-size: 11px">{{k.txt}}</span>
+            <span class="lbl" style="font-size: 9px">{{k.n}}</span>
+            <span class="map {{k.mc}}">{{k.m}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="マスターFX">
+      <div class="ph"><span class="lbl"><span class="idx">07</span>Master FX</span><span class="lbl">strobe ≤ 8 Hz</span></div>
+      <div class="fx">
+        <sc-for list="{{fx}}" as="f" hint-placeholder-count="5">
+          <label>
+            <sc-if value="{{f.on}}" hint-placeholder-val="{{true}}"><input class="cb" type="checkbox" checked="checked"></sc-if>
+            <sc-if value="{{f.off}}" hint-placeholder-val="{{false}}"><input class="cb" type="checkbox"></sc-if>
+            <span class="mono" style="font-size: 11px">{{f.n}}</span>
+            <input class="rng" type="range" min="0" max="100" value="{{f.v}}" aria-label="{{f.n}} の量">
+            <span class="mono" style="font-size: 10.5px; color: #a3a8a2; text-align: right">{{f.s}}</span>
+          </label>
+        </sc-for>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="AI">
+      <div class="ph"><span class="lbl"><span class="idx">08</span>AI</span><span class="lbl t-cue">→ Deck B (cue)</span></div>
+      <div class="ai-in">
+        <label for="ai-prompt" class="sr">AIへの指示</label>
+        <input id="ai-prompt" type="text" value="もう少し粒を荒く、ハイに反応させて">
+        <button type="button" class="btn" style="height: 38px">送る</button>
+      </div>
+      <div class="log">
+        <div><span class="mono" style="font-size: 10px; color: #878c87; min-width: 40px">01:12</span><span class="jp2">キックで奥にズーム → SWARM v4 を DECK B に反映しました</span></div>
+        <div><span class="mono" style="font-size: 10px; color: #878c87; min-width: 40px">01:09</span><span class="jp2">LATTICE の DRIFT を LFO 8小節に結線しました</span></div>
+        <div><span class="mono" style="font-size: 10px; color: #878c87; min-width: 40px">00:58</span><span class="jp2">本番中はキュー側だけを書き換えます</span></div>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"typeset":{"editor":"enum","options":["signal","organic","terminal"],"default":"signal","section":"Type"},"live":{"editor":"color","default":"#ff6b35","options":["#ff6b35","#ffb547","#ff3b5c"],"section":"Theme"},"cue":{"editor":"color","default":"#5aa2ff","options":["#5aa2ff","#7cc4ff","#9d8cff"],"section":"Theme"},"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  pt(v, r) {
+    const a = (-135 + v * 270) * Math.PI / 180;
+    return [22 + r * Math.sin(a), 22 - r * Math.cos(a)];
+  }
+  arc(v) {
+    const r = 18;
+    const s = this.pt(0, r), e = this.pt(Math.max(v, 0.001), r);
+    const large = v * 270 > 180 ? 1 : 0;
+    return 'M' + s[0].toFixed(2) + ' ' + s[1].toFixed(2) + ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + e[0].toFixed(2) + ' ' + e[1].toFixed(2);
+  }
+  smooth(p) {
+    let d = 'M' + p[0][0].toFixed(1) + ' ' + p[0][1].toFixed(1);
+    for (let i = 0; i < p.length - 1; i++) {
+      const a = p[i - 1] || p[i], b = p[i], c = p[i + 1], e = p[i + 2] || c;
+      d += ' C' + (b[0] + (c[0] - a[0]) / 6).toFixed(1) + ' ' + (b[1] + (c[1] - a[1]) / 6).toFixed(1) + ' ' + (c[0] - (e[0] - b[0]) / 6).toFixed(1) + ' ' + (c[1] - (e[1] - b[1]) / 6).toFixed(1) + ' ' + c[0].toFixed(1) + ' ' + c[1].toFixed(1);
+    }
+    return d;
+  }
+  renderVals() {
+    const ts = { signal: '', organic: 'ts-organic', terminal: 'ts-terminal' }[this.props.typeset ?? 'signal'] || '';
+    const phrase = Array.from({ length: 32 }, (_, i) => {
+      const mk = i % 8 === 0 ? ' mk' : '';
+      if (i < 16) return 'dn' + mk;
+      if (i === 16) return 'on pulse' + mk;
+      return mk.trim();
+    });
+    const K = [
+      { n: 'Energy', v: 0.72, m: 'LOW' }, { n: 'Density', v: 0.55, m: 'CC 21' },
+      { n: 'Drift', v: 0.30, m: 'LFO 8bar' }, { n: 'Hue', v: 0.08, m: '—' },
+      { n: 'Chaos', v: 0.41, m: 'HIGH' }, { n: 'Zoom', v: 0.60, m: 'KICK' },
+      { n: 'Grain', v: 0.20, m: '—' }, { n: 'Feedback', v: 0.35, m: 'CC 24' }
+    ];
+    const audio = { LOW: 1, HIGH: 1, KICK: 1 };
+    const knobs = K.map((k) => {
+      const p = this.pt(k.v, 6.5);
+      return { n: k.n, m: k.m, mc: audio[k.m] ? 'on' : '', track: this.arc(1), val: this.arc(k.v), px: p[0].toFixed(2), py: p[1].toFixed(2), txt: k.v.toFixed(2).replace(/^0/, '') };
+    });
+    const now = 0.72;
+    const L = [
+      { n: 'LATTICE', j: '格子', img: '/_blob/03c9c29c4eece0cb452abc40871c91b4', tag: 'drive · techno', e: [0.5, 0.9], t: 'sync', st: 'air' },
+      { n: 'SWARM', j: '群れ', img: '/_blob/6632d8982bda7aa8c44947bb50f841f0', tag: 'drive', e: [0.4, 0.8], t: 'sync', st: 'cue' },
+      { n: 'SCANLINE', j: '走査', img: '/_blob/8745d6a3a561341a329143d0b30fe8bc', tag: 'peak · minimal', e: [0.7, 1], t: 'sync', st: 'next' },
+      { n: 'STRATA', j: '地層', img: '/_blob/2c35b244d36c9b18427bdd24c9f80db0', tag: 'drive', e: [0.5, 0.8], t: 'sync', st: 'next' },
+      { n: 'INK TIDE', j: '墨潮', img: '/_blob/2f1bb7ac6667b106b669d6f59b81a8ac', tag: 'deep · organic', e: [0.2, 0.5], t: 'both', st: '' },
+      { n: 'MONOLITH', j: '碑', img: '/_blob/30bc4d6444678317842799c6622dcb34', tag: 'deep', e: [0.1, 0.4], t: 'free', st: '' },
+      { n: 'BLOOM', j: '開花', img: '/_blob/f6ccdeb0ef2862690402131c52d5a468', tag: 'organic', e: [0.2, 0.6], t: 'free', st: '' },
+      { n: 'CAUSTICS', j: '水影', img: '/_blob/20f458895faf32a4cd6f2e93f2f3417e', tag: 'calm', e: [0, 0.3], t: 'free', st: '' },
+      { n: 'MILK & INK', j: '乳墨', img: '/_blob/09497ebaad8d1fe39614112107f7bfa5', tag: 'deep · organic', e: [0.3, 0.6], t: 'both', st: '' },
+      { n: 'LIVE CAM', j: '生映', img: '/_blob/83a266c2a7addc53ea6b09f4432c8520', tag: 'camera', e: [0.3, 0.9], t: 'both', st: '' }
+    ];
+    const lib = L.map((w) => {
+      const dots = Array.from({ length: 10 }, (_, i) => {
+        const x = (i + 0.5) / 10;
+        const inR = x >= w.e[0] && x <= w.e[1];
+        const isNow = inR && Math.abs(x - now) < 0.05;
+        return (inR ? 'in' : '') + (isNow ? ' now' : '');
+      });
+      return { ...w, dots, isAir: w.st === 'air', isCue: w.st === 'cue', isNext: w.st === 'next' };
+    });
+    const E = [0.30, 0.31, 0.29, 0.33, 0.36, 0.35, 0.38, 0.42, 0.40, 0.44, 0.47, 0.45, 0.43, 0.46, 0.50, 0.52, 0.49, 0.47, 0.51, 0.55, 0.58, 0.56, 0.54, 0.57, 0.60, 0.63, 0.61, 0.64, 0.68, 0.66, 0.70, 0.72];
+    const tp = E.map((v, i) => [i * 356 / (E.length - 1), 60 - v * 60]);
+    const tLine = this.smooth(tp);
+    const tArea = tLine + ' L356 64 L0 64 Z';
+    let gridD = '';
+    for (let x = 0; x <= 356; x += 356 / 8) gridD += 'M' + x.toFixed(1) + ' 0V64';
+    const S = Array.from({ length: 32 }, (_, i) => Math.min(0.95, 0.88 * Math.exp(-i / 13) + 0.18 * Math.pow(Math.sin(i * 0.55 + 0.6), 2) + 0.06));
+    const bw = 356 / 32;
+    let specLo = '', specRest = '';
+    S.forEach((v, i) => {
+      const h = v * 40, x = i * bw + 1.5, r = 'M' + x.toFixed(1) + ' 40V' + (40 - h).toFixed(1) + 'h' + (bw - 3.5).toFixed(1) + 'V40Z';
+      if (i < 6) specLo += r; else specRest += r;
+    });
+    const specEnv = this.smooth(S.map((v, i) => [i * bw + bw / 2, 40 - v * 40 - 3]));
+    const fx = [
+      { n: 'FEEDBACK', on: true, v: 35, s: '.35' },
+      { n: 'RGB SPLIT', on: true, v: 50, s: '1/4' },
+      { n: 'KALEIDO', on: false, v: 0, s: 'off' },
+      { n: 'GRAIN', on: true, v: 18, s: '.18' },
+      { n: 'STROBE', on: false, v: 0, s: 'off' }
+    ].map((f) => ({ ...f, off: !f.on }));
+    return { ts, live: this.props.live ?? '#ff6b35', cue: this.props.cue ?? '#5aa2ff', phrase, knobs, lib, tLine, tArea, gridD, specLo, specRest, specEnv, fx };
+  }
+}
+</script>
+</body>
+</html>

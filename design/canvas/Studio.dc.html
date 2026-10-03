@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>SHIKI Studio — Motion study</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./shiki.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght,ROND@400..900,100&amp;family=Martian+Mono:wdth,wght@75..112.5,300..800&amp;family=Zen+Kaku+Gothic+New:wght@400;500;700&amp;family=Shippori+Mincho:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#08090a}
+a{color:#8cbcff}a:hover{color:#c2dcff}
+.steps{display:flex;align-items:center;gap:8px;flex:1;min-width:0;flex-wrap:wrap;list-style:none;margin:0;padding:0}
+.steps li{display:flex;align-items:center;gap:8px}
+.steps .st{display:flex;align-items:center;gap:7px;font-family:var(--f-mono);font-stretch:var(--mono-st);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);white-space:nowrap}
+.steps .st.dn{color:#d6d1c6}
+.steps .st.now{color:var(--tx);font-weight:700}
+.steps .pip{width:8px;height:8px;border-radius:50%;border:1px solid #5b615c}
+.steps .st.dn .pip{background:#8d928c;border-color:#8d928c}
+.steps .st.now .pip{background:var(--live);border-color:var(--live)}
+.steps .wire{width:36px;height:1px;background-image:radial-gradient(circle,#5b615c 1px,transparent 1.2px);background-size:5px 1px;background-repeat:repeat-x}
+.studio{display:grid;grid-template-columns:330px minmax(0,1fr) 360px;gap:10px}
+.lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.alts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.alt{display:flex;flex-direction:column;gap:4px}
+.alt .screen{aspect-ratio:3/2;opacity:.55}
+.sw{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.sw div{display:flex;flex-direction:column;gap:4px}
+.sw i{display:block;height:26px;border:1px solid #2c3135}
+.maps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.depth img{filter:grayscale(1) blur(2px) contrast(1.6) brightness(1.1)}
+.mask img{filter:grayscale(1) contrast(9) brightness(.9)}
+.studies{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.study{display:flex;flex-direction:column;gap:6px;padding:6px;border:1px solid var(--ln);border-radius:2px;background:#121416;position:relative}
+.study .screen{aspect-ratio:16/9}
+.study .screen img{transform-origin:60% 55%}
+.study.pick{border-color:var(--tx)}
+.study.rej{opacity:.5}
+.study .badge{position:absolute;top:12px;right:12px;z-index:2}
+.m-breathe img{animation:m-breathe 6s ease-in-out infinite}
+@keyframes m-breathe{0%,100%{transform:scale(1.02)}50%{transform:scale(1.1)}}
+.m-drift img{animation:m-drift 9s ease-in-out infinite}
+@keyframes m-drift{0%,100%{transform:scale(1.14) translateX(-4%)}50%{transform:scale(1.14) translateX(4%)}}
+.m-flow img{animation:m-flow 7s ease-in-out infinite}
+@keyframes m-flow{0%,100%{transform:scale(1.16) translate(2%,1%) rotate(0deg)}50%{transform:scale(1.2) translate(-2%,-1.5%) rotate(1.6deg)}}
+.m-dissolve img{animation:m-dissolve 5s ease-in-out infinite}
+@keyframes m-dissolve{0%,100%{filter:blur(0) brightness(1);opacity:1}50%{filter:blur(3px) brightness(1.35);opacity:.55}}
+.m-grow img{animation:m-grow 6s ease-out infinite alternate}
+@keyframes m-grow{from{transform:scale(.94)}to{transform:scale(1.14)}}
+.m-ripple img{animation:m-ripple 2.4s ease-in-out infinite}
+@keyframes m-ripple{0%,100%{filter:contrast(1) brightness(1);transform:scale(1.04)}50%{filter:contrast(1.3) brightness(1.18);transform:scale(1.07)}}
+.checks{display:flex;gap:6px;flex-wrap:wrap}
+.chat{display:flex;flex-direction:column;gap:12px;flex:1}
+.msg{display:flex;flex-direction:column;gap:4px}
+.msg.me{align-items:flex-end}
+.msg .b{max-width:92%;padding:9px 11px;border:1px solid var(--ln2);border-radius:2px;background:#14171a;font-size:13px;line-height:1.6}
+.msg.ai .b{background:transparent;border-color:#2c3135;font-family:var(--f-jp2);font-size:13.5px}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.quick .btn{height:30px;font-size:10px}
+.fbin{display:flex;gap:6px}
+.fbin input{flex:1;min-width:0;height:40px;background:#0b0d0e;border:1px solid #33393e;border-radius:2px;color:var(--tx);font-family:var(--f-ui);font-size:13px;padding:0 10px}
+.tree{display:grid;grid-template-columns:auto 36px auto 36px auto;grid-template-rows:auto auto;align-items:center;row-gap:14px}
+.node{display:flex;flex-direction:column;gap:3px;padding:8px 10px;border:1px solid var(--ln2);border-radius:2px;background:#14171a;text-align:left;color:var(--tx);font:inherit;cursor:pointer}
+.node.cur{border-color:var(--live);background:#1f130c}
+.node.rej{opacity:.5;border-style:dashed}
+.hl{height:1px;background-image:radial-gradient(circle,#8d928c 1px,transparent 1.2px);background-size:5px 1px;background-repeat:repeat-x}
+.elbow{align-self:stretch;position:relative}
+.elbow::before{content:"";position:absolute;left:50%;top:-14px;height:calc(50% + 14px);border-left:1px dashed #5b615c}
+.elbow::after{content:"";position:absolute;left:50%;right:0;top:50%;border-top:1px dashed #5b615c}
+.taste{display:flex;gap:8px;flex-wrap:wrap}
+.tchip{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--ln2);border-radius:2px;background:#14171a;font-size:13px}
+@media (max-width:1200px){.studio{grid-template-columns:minmax(0,1fr)}.lower{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.studies{grid-template-columns:repeat(2,minmax(0,1fr))}.tree{grid-template-columns:auto 20px auto 20px auto}}
+</style>
+</helmet>
+<div class="app" style="--live: {{live}}; --cue: {{cue}}">
+
+<header class="top">
+  <div class="brand">
+    <div class="wordmark">SHIKI</div>
+    <nav class="nav" aria-label="画面"><a href="Main.dc.html">Perform</a><a href="Studio.dc.html" class="on" aria-current="page">Studio</a><a href="Session.dc.html">Setup</a><a href="Type.dc.html">Type</a></nav>
+  </div>
+  <div class="stack2">
+    <span class="lbl">Work</span>
+    <span style="display: flex; gap: 8px; align-items: baseline"><strong class="name" style="font-size: 20px">INK TIDE</strong><span class="jp2" style="font-size: 16px">墨潮</span><span class="chip">v3</span></span>
+  </div>
+  <ol class="steps" aria-label="制作の段階">
+    <li><span class="st dn"><i class="pip"></i>01 Concept</span><i class="wire"></i></li>
+    <li><span class="st dn"><i class="pip"></i>02 Key visual</span><i class="wire"></i></li>
+    <li><span class="st dn"><i class="pip"></i>03 Analysis</span><i class="wire"></i></li>
+    <li><span class="st now" aria-current="step"><i class="pip pulse"></i>04 Motion study</span><i class="wire"></i></li>
+    <li><span class="st"><i class="pip"></i>05 Instrument</span></li>
+  </ol>
+  <button type="button" class="btn" style="height: 40px; background: #ece6da; color: #08090a; border-color: #ece6da; font-weight: 700">05 楽器にする →</button>
+</header>
+
+<div class="studio">
+  <div class="col">
+    <section class="panel" aria-label="キービジュアル">
+      <div class="ph"><span class="lbl"><span class="idx">02</span>Key visual</span><span class="lbl">v2 · 採用</span></div>
+      <div class="screen scan" style="aspect-ratio: 3 / 2"><img src="/_blob/2f1bb7ac6667b106b669d6f59b81a8ac" alt="採用したキービジュアル：墨の粒が暗い水の中を流れる"><div class="hud"><i></i><i></i><i></i><i></i></div></div>
+      <span class="lbl">却下した案</span>
+      <div class="alts">
+        <div class="alt"><div class="screen"><img src="/_blob/09497ebaad8d1fe39614112107f7bfa5" alt="却下案1"></div><span class="jp2" style="font-size: 11.5px; color: #c9c4b8">中央に寄りすぎ</span></div>
+        <div class="alt"><div class="screen"><img src="/_blob/6632d8982bda7aa8c44947bb50f841f0" alt="却下案2"></div><span class="jp2" style="font-size: 11.5px; color: #c9c4b8">粒が粗い</span></div>
+        <div class="alt"><div class="screen"><img src="/_blob/20f458895faf32a4cd6f2e93f2f3417e" alt="却下案3"></div><span class="jp2" style="font-size: 11.5px; color: #c9c4b8">色が違う</span></div>
+      </div>
+    </section>
+    <section class="panel" aria-label="解析">
+      <div class="ph"><span class="lbl"><span class="idx">03</span>Analysis</span><span class="lbl">3 regions · 4 depth layers</span></div>
+      <div class="sw">
+        <div><i style="background: #05070c"></i><span class="mono" style="font-size: 9px; color: #a3a8a2">#05070C</span></div>
+        <div><i style="background: #12233a"></i><span class="mono" style="font-size: 9px; color: #a3a8a2">#12233A</span></div>
+        <div><i style="background: #4c6a86"></i><span class="mono" style="font-size: 9px; color: #a3a8a2">#4C6A86</span></div>
+        <div><i style="background: #cfd6dc"></i><span class="mono" style="font-size: 9px; color: #a3a8a2">#CFD6DC</span></div>
+        <div><i style="background: #e3c49b"></i><span class="mono" style="font-size: 9px; color: #a3a8a2">#E3C49B</span></div>
+      </div>
+      <div class="maps">
+        <div class="stack2" style="gap: 4px"><div class="screen depth" style="aspect-ratio: 3 / 2"><img src="/_blob/2f1bb7ac6667b106b669d6f59b81a8ac" alt="深度マップ"></div><span class="lbl">Depth</span></div>
+        <div class="stack2" style="gap: 4px"><div class="screen mask" style="aspect-ratio: 3 / 2"><img src="/_blob/2f1bb7ac6667b106b669d6f59b81a8ac" alt="領域マスク"></div><span class="lbl">Mask</span></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel" aria-label="モーションスタディ">
+    <div class="ph" style="flex-wrap: wrap">
+      <span style="display: flex; gap: 10px; align-items: baseline"><span class="lbl"><span class="idx">04</span></span><strong class="name" style="font-size: 19px">MOTION STUDY</strong><span class="lbl">6 studies · 8 s loop</span></span>
+      <span class="jp2" style="font-size: 13px; color: #d6d1c6">同じ静止画に、6種類の動きを当てています。</span>
+    </div>
+    <div class="studies">
+      <sc-for list="{{studies}}" as="s" hint-placeholder-count="6">
+        <article class="study {{s.st}}">
+          <div class="screen scan {{s.cls}}"><img src="/_blob/2f1bb7ac6667b106b669d6f59b81a8ac" alt="{{s.jp}} の動き"></div>
+          <sc-if value="{{s.isPick}}" hint-placeholder-val="{{false}}"><span class="chip badge" style="background: #ece6da; color: #08090a; border-color: #ece6da; font-weight: 700">採用</span></sc-if>
+          <sc-if value="{{s.isRej}}" hint-placeholder-val="{{false}}"><span class="chip badge" style="background: #08090a">却下</span></sc-if>
+          <div class="ph" style="align-items: baseline; padding: 0 2px"><span style="display: flex; gap: 8px; align-items: baseline"><span class="jp2" style="font-size: 16px; font-weight: 600">{{s.jp}}</span><span class="lbl">{{s.en}}</span></span><span class="mono" style="font-size: 10px; color: #878c87">{{s.no}}</span></div>
+          <span class="mono" style="font-size: 10px; color: #a3a8a2; padding: 0 2px">{{s.note}}</span>
+        </article>
+      </sc-for>
+    </div>
+    <div class="ph" style="flex-wrap: wrap; align-items: flex-start">
+      <span class="lbl" style="padding-top: 3px">Self-check · 見せる前の自動確認</span>
+      <div class="checks">
+        <span class="chip c-ok">ちらつき OK</span>
+        <span class="chip c-ok">パレット逸脱 0.8%</span>
+        <span class="chip c-ok">60 fps @1080p</span>
+        <span class="chip c-ok">却下要素の再発なし</span>
+        <span class="chip c-warn">つまみ破綻チェック → 05</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="フィードバック">
+    <div class="ph"><span class="lbl"><span class="idx">05</span>Feedback</span><span class="lbl">4 messages</span></div>
+    <div class="chat">
+      <div class="msg me"><span class="lbl">You · 10:24</span><div class="b">もっとゆっくり、粒を細かく</div></div>
+      <div class="msg ai"><span class="lbl t-cue">AI · 10:24</span><div class="b">3案作りました。A は速度を .18 → .09、B は粒を2倍、C は両方に加えて残像を長くしています。</div></div>
+      <div class="msg me"><span class="lbl">You · 10:27</span><div class="b">Cがいい。でも中央に寄りすぎ</div></div>
+      <div class="msg ai"><span class="lbl t-cue">AI · 10:28</span><div class="b">左に4割の余白を残す構図に直しました（v3）。「中央構図を避ける」を好みのメモに加えています。</div></div>
+    </div>
+    <div class="quick" role="group" aria-label="よく使うフィードバック">
+      <button type="button" class="btn">もっと静かに</button>
+      <button type="button" class="btn">もっと強く</button>
+      <button type="button" class="btn">違う方向も</button>
+      <button type="button" class="btn">A/B 比較</button>
+    </div>
+    <div class="fbin">
+      <label for="fb" class="sr">フィードバック</label>
+      <input id="fb" type="text" placeholder="あーじゃない、こーじゃない…">
+      <button type="button" class="btn" style="height: 40px">送る</button>
+    </div>
+  </section>
+</div>
+
+<div class="lower">
+  <section class="panel" aria-label="バージョン">
+    <div class="ph"><span class="lbl"><span class="idx">06</span>Version tree</span><span class="lbl">4 versions</span></div>
+    <div class="tree">
+      <button type="button" class="node"><span class="mono" style="font-size: 12px; font-weight: 700">v1</span><span class="jp2" style="font-size: 12px; color: #c9c4b8">初期案</span></button>
+      <i class="hl"></i>
+      <button type="button" class="node"><span class="mono" style="font-size: 12px; font-weight: 700">v2</span><span class="jp2" style="font-size: 12px; color: #c9c4b8">粒を細かく</span></button>
+      <i class="hl"></i>
+      <button type="button" class="node cur" aria-current="true"><span class="mono" style="font-size: 12px; font-weight: 700">v3 · now</span><span class="jp2" style="font-size: 12px; color: #d6d1c6">余白4割・ゆっくり</span></button>
+      <span></span>
+      <span></span>
+      <span class="elbow"></span>
+      <span></span>
+      <button type="button" class="node rej"><span class="mono" style="font-size: 12px; font-weight: 700">v2b</span><span class="jp2" style="font-size: 12px; color: #c9c4b8">残像強め · 却下</span></button>
+    </div>
+  </section>
+  <section class="panel" aria-label="好みのメモ">
+    <div class="ph"><span class="lbl"><span class="idx">07</span>Taste memory</span><button type="button" class="btn" style="height: 28px">+ 追加</button></div>
+    <div class="taste">
+      <span class="tchip">中央構図を避ける<span class="lbl" style="font-size: 9px">all</span></span>
+      <span class="tchip">虹色は使わない<span class="lbl" style="font-size: 9px">all</span></span>
+      <span class="tchip">動きは遅め<span class="lbl" style="font-size: 9px">all</span></span>
+      <span class="tchip">粒は細かく<span class="lbl" style="font-size: 9px">this work</span></span>
+      <span class="tchip">余白は4割<span class="lbl" style="font-size: 9px">this work</span></span>
+    </div>
+    <p class="jp2" style="margin: 0; font-size: 13px; line-height: 1.6; color: #d6d1c6">最近覚えたこと：「有機的に」と言われたら、ノイズを3層重ねて、ゆっくり漂わせる。</p>
+  </section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"live":{"editor":"color","default":"#ff6b35","options":["#ff6b35","#ffb547","#ff3b5c"],"section":"Theme"},"cue":{"editor":"color","default":"#5aa2ff","options":["#5aa2ff","#7cc4ff","#9d8cff"],"section":"Theme"},"$preview":{"width":1440,"height":940}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const S = [
+      { no: 'A', jp: '呼吸', en: 'Breathe', cls: 'm-breathe', note: 'scale ±4% · 8 bars', st: '' },
+      { no: 'B', jp: '漂流', en: 'Drift', cls: 'm-drift', note: 'parallax · depth 4 layers', st: '' },
+      { no: 'C', jp: '流れ', en: 'Flow', cls: 'm-flow', note: 'curl noise · 3 octaves · .09', st: 'pick' },
+      { no: 'D', jp: '崩壊', en: 'Dissolve', cls: 'm-dissolve', note: 'particle split · kick', st: '' },
+      { no: 'E', jp: '成長', en: 'Grow', cls: 'm-grow', note: '広がりすぎ', st: 'rej' },
+      { no: 'F', jp: '波紋', en: 'Ripple', cls: 'm-ripple', note: 'caustic ripple · snare', st: '' }
+    ];
+    const studies = S.map((s) => ({ ...s, isPick: s.st === 'pick', isRej: s.st === 'rej' }));
+    return { live: this.props.live ?? '#ff6b35', cue: this.props.cue ?? '#5aa2ff', studies };
+  }
+}
+</script>
+</body>
+</html>

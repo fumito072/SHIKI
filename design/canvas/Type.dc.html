@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>SHIKI — Type and instruments</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./shiki.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght,ROND@400..900,100&amp;family=Martian+Mono:wdth,wght@75..112.5,300..800&amp;family=Zen+Kaku+Gothic+New:wght@400;500;700&amp;family=Shippori+Mincho:wght@400;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300..700&amp;family=Instrument+Serif:ital@0;1&amp;family=Zen+Old+Mincho:wght@400;600&amp;family=Sixtyfour&amp;family=DotGothic16&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#08090a}
+a{color:#8cbcff}a:hover{color:#c2dcff}
+.wrap{max-width:1420px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding:12px 6px 24px}
+.sets{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:12px}
+.set{gap:14px;padding:18px}
+.set.rec{border-color:#5d646a}
+.fonts{display:grid;grid-template-columns:62px minmax(0,1fr);gap:3px 10px}
+.fonts span:nth-child(odd){font-family:var(--f-mono);font-stretch:var(--mono-st);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dm)}
+.fonts span:nth-child(even){font-family:var(--f-mono);font-stretch:var(--mono-st);font-size:11px;color:#d6d1c6}
+.hr{height:1px;background-image:radial-gradient(circle,#4a5055 1px,transparent 1.2px);background-size:6px 1px;background-repeat:repeat-x}
+.inst{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:12px}
+.card{gap:12px}
+.card .demo{min-height:76px;display:flex;flex-direction:column;justify-content:center;gap:8px}
+.why{font-family:var(--f-jp2);font-size:13px;line-height:1.6;color:#d6d1c6;margin:0}
+.knob svg{width:72px;height:72px}
+.fill-live{fill:var(--live)}
+</style>
+</helmet>
+<div class="app" style="--live: {{live}}; --cue: {{cue}}">
+<div class="wrap">
+  <header class="ph" style="flex-wrap: wrap; align-items: flex-end; gap: 16px">
+    <div class="stack2" style="gap: 10px">
+      <div class="wordmark" style="font-size: 34px">SHIKI</div>
+      <strong class="name" style="font-size: 30px">TYPE &amp; INSTRUMENTS</strong>
+    </div>
+    <p class="jp2" style="margin: 0; max-width: 620px; font-size: 15px; line-height: 1.75; color: #d6d1c6">サイバー（ドット・格子・走査線）と、自然（丸い粒・等高線・明朝のはね）を同じ画面に。数字は暗い会場で離れていても読めること。AIの言葉は明朝にして、機械の表示と「声」を分けています。</p>
+  </header>
+
+  <span class="lbl"><span class="idx">01</span>Typesets · 書体セット</span>
+  <div class="sets">
+    <sc-for list="{{sets}}" as="s" hint-placeholder-count="3">
+      <section class="panel set {{s.cls}} {{s.rec}}" aria-label="{{s.title}}">
+        <div class="ph"><span style="display: flex; gap: 8px; align-items: center"><span class="chip">{{s.key}}</span><strong class="name" style="font-size: 20px">{{s.title}}</strong></span><span class="lbl t-moss">{{s.badge}}</span></div>
+        <div class="fonts">
+          <span>Numbers</span><span>{{s.fNum}}</span>
+          <span>Labels</span><span>{{s.fMono}}</span>
+          <span>Names</span><span>{{s.fName}}</span>
+          <span>和文</span><span>{{s.fJp}}</span>
+        </div>
+        <div class="hr"></div>
+        <div style="display: flex; align-items: flex-end; gap: 10px"><span class="num" style="font-size: 72px">126.0</span><span class="lbl" style="padding-bottom: 6px">BPM</span></div>
+        <div style="display: flex; align-items: baseline; gap: 14px"><span class="lbl">Bar</span><span class="num" style="font-size: 30px">17.3</span><span class="lbl">Time</span><span class="num" style="font-size: 30px">00:42</span></div>
+        <div style="display: flex; align-items: baseline; gap: 12px"><strong class="name" style="font-size: 34px">LATTICE</strong><span class="jp2" style="font-size: 24px">格子</span></div>
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap"><span class="lbl"><span class="idx">06</span>Macros · Deck A</span><button type="button" class="btn">Take → B</button><span class="chip c-live">On air</span></div>
+        <p class="jp2" style="margin: 0; font-size: 16px; line-height: 1.7">エネルギーが上がっています。次は、走査線の作品を。</p>
+        <p style="margin: 0; font-size: 13px; color: #c9c4b8">次のフレーズ頭で切替 · あと 15 小節</p>
+        <div class="hr"></div>
+        <p class="why">{{s.note}}</p>
+      </section>
+    </sc-for>
+  </div>
+
+  <span class="lbl" style="margin-top: 8px"><span class="idx">02</span>Instruments · 計器</span>
+  <div class="inst">
+    <section class="panel card" aria-label="セグメントメーター">
+      <div class="ph"><strong class="name" style="font-size: 14px">SEGMENT METER</strong><span class="lbl">audio</span></div>
+      <div class="demo">
+        <div class="sm anim" style="--v: 84%; --lo: 30%; --pk: 90%; --d: .476s; --c: var(--live)"><i></i><b></b></div>
+        <div class="sm anim" style="--v: 62%; --lo: 34%; --pk: 70%; --d: .9s"><i></i><b></b></div>
+        <div class="sm anim" style="--v: 46%; --lo: 12%; --pk: 58%; --d: .7s"><i></i><b></b></div>
+      </div>
+      <p class="why">セグメントが段階的に灯る（デジタル）。ピークの目印はゆっくり落ちる（自然な減衰）。</p>
+    </section>
+
+    <section class="panel card" aria-label="拍とフレーズ">
+      <div class="ph"><strong class="name" style="font-size: 14px">BEAT · PHRASE</strong><span class="lbl">clock</span></div>
+      <div class="demo">
+        <div class="b16"><span><i class="dn"></i><i class="dn"></i><i class="dn"></i><i class="dn"></i></span><span><i class="dn"></i><i class="dn"></i><i class="dn"></i><i class="dn"></i></span><span><i class="on"></i><i class="on pulse"></i><i></i><i></i></span><span><i></i><i></i><i></i><i></i></span></div>
+        <div class="cells"><sc-for list="{{phrase}}" as="c" hint-placeholder-count="32"><i class="{{c}}"></i></sc-for></div>
+      </div>
+      <p class="why">16分の刻みと、32小節を1本ずつ並べた目盛り。今いる小節だけが拍で明滅する。</p>
+    </section>
+
+    <section class="panel card" aria-label="つまみ">
+      <div class="ph"><strong class="name" style="font-size: 14px">KNOB</strong><span class="lbl">macro</span></div>
+      <div class="demo" style="flex-direction: row; justify-content: flex-start; gap: 18px">
+        <sc-for list="{{knobs}}" as="k" hint-placeholder-count="3">
+          <div class="knob" style="display: flex; flex-direction: column; align-items: center; gap: 2px">
+            <svg viewBox="0 0 44 44" aria-hidden="true">
+              <path class="kn-track" d="{{k.track}}"></path>
+              <path class="kn-val {{k.mc}}" d="{{k.val}}"></path>
+              <circle cx="22" cy="22" r="10" fill="#121417" stroke="#30353a"></circle>
+              <circle cx="{{k.px}}" cy="{{k.py}}" r="1.8" fill="#ece6da"></circle>
+            </svg>
+            <span class="mono" style="font-size: 11px">{{k.txt}}</span>
+            <span class="lbl" style="font-size: 9px">{{k.n}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <p class="why">値は目盛りの粒の数で示す。指標は線ではなく一粒の点。音に結線されたつまみは橙に灯る。</p>
+    </section>
+
+    <section class="panel card" aria-label="クロスフェーダー">
+      <div class="ph"><strong class="name" style="font-size: 14px">CROSSFADER</strong><span class="lbl">mix</span></div>
+      <div class="demo">
+        <div class="ph"><span class="lbl t-live">A</span><span class="lbl t-cue">B</span></div>
+        <input class="rng xf" type="range" min="0" max="100" value="38" aria-label="クロスフェーダーの例">
+        <div class="ruler"></div>
+      </div>
+      <p class="why">定規の目盛りと、溝を刻んだつまみ。暗い中でも位置が指先と目で分かる。</p>
+    </section>
+
+    <section class="panel card" aria-label="地形グラフ">
+      <div class="ph"><strong class="name" style="font-size: 14px">TERRAIN</strong><span class="lbl">energy history</span></div>
+      <div class="demo">
+        <svg class="terrain" viewBox="0 0 356 64" preserveAspectRatio="none" height="64" aria-hidden="true">
+          <defs><pattern id="tdots" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1.2" cy="1.2" r="0.75" fill="#ece6da" fill-opacity="0.3"></circle></pattern></defs>
+          <path class="grid" d="{{gridD}}"></path>
+          <path d="{{tArea}}" fill="url(#tdots)"></path>
+          <path class="echo" d="{{tLine}}" transform="translate(0 14)" stroke-opacity="0.14"></path>
+          <path class="echo" d="{{tLine}}" transform="translate(0 7)" stroke-opacity="0.32"></path>
+          <path class="line" d="{{tLine}}"></path>
+        </svg>
+      </div>
+      <p class="why">エネルギーの履歴を等高線のように重ね、下を点描で満たす。格子は8小節ごと。</p>
+    </section>
+
+    <section class="panel card" aria-label="スペクトラム">
+      <div class="ph"><strong class="name" style="font-size: 14px">SPECTRUM</strong><span class="lbl">now</span></div>
+      <div class="demo">
+        <svg class="spec" viewBox="0 0 356 48" preserveAspectRatio="none" height="48" aria-hidden="true">
+          <path d="{{specRest}}" fill="#3a4045"></path>
+          <path d="{{specLo}}" class="fill-live"></path>
+          <path class="env" d="{{specEnv}}"></path>
+        </svg>
+      </div>
+      <p class="why">帯域ごとの棒（デジタル）に、なめらかな包絡線（自然）を重ねる。低域は橙。</p>
+    </section>
+
+    <section class="panel card" aria-label="エネルギーの粒">
+      <div class="ph"><strong class="name" style="font-size: 14px">ENERGY DOTS</strong><span class="lbl">library</span></div>
+      <div class="demo">
+        <div class="ph"><span class="mono" style="font-size: 11px">LATTICE</span><span class="edots"><i></i><i></i><i></i><i></i><i></i><i class="in"></i><i class="in now"></i><i class="in"></i><i class="in"></i><i></i></span></div>
+        <div class="ph"><span class="mono" style="font-size: 11px">CAUSTICS</span><span class="edots"><i class="in"></i><i class="in"></i><i class="in"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+        <div class="ph"><span class="mono" style="font-size: 11px">SCANLINE</span><span class="edots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="in now"></i><i class="in"></i><i class="in"></i></span></div>
+      </div>
+      <p class="why">作品が合うエネルギー帯を10粒で。今の会場のエネルギーと重なる粒が灯る。</p>
+    </section>
+
+    <section class="panel card" aria-label="テンポの川">
+      <div class="ph"><strong class="name" style="font-size: 14px">TEMPO RIVER</strong><span class="lbl">band</span></div>
+      <div class="demo">
+        <svg class="terrain" viewBox="0 0 356 56" preserveAspectRatio="none" height="56" aria-hidden="true">
+          <defs><pattern id="tr" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1.2" cy="1.2" r="0.75" fill="#ffc65a" fill-opacity="0.45"></circle></pattern></defs>
+          <line class="thr" x1="0" y1="28" x2="356" y2="28"></line>
+          <path d="{{river}}" fill="url(#tr)"></path>
+          <path class="line" d="{{mid}}"></path>
+        </svg>
+      </div>
+      <p class="why">人間のテンポの揺れを、川の幅（追従の確信度）として見せる。細いほど確か。</p>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"live":{"editor":"color","default":"#ff6b35","options":["#ff6b35","#ffb547","#ff3b5c"],"section":"Theme"},"cue":{"editor":"color","default":"#5aa2ff","options":["#5aa2ff","#7cc4ff","#9d8cff"],"section":"Theme"},"$preview":{"width":1440,"height":1400}}'>
+class Component extends DCLogic {
+  pt(v, r) {
+    const a = (-135 + v * 270) * Math.PI / 180;
+    return [22 + r * Math.sin(a), 22 - r * Math.cos(a)];
+  }
+  arc(v) {
+    const r = 18;
+    const s = this.pt(0, r), e = this.pt(Math.max(v, 0.001), r);
+    const large = v * 270 > 180 ? 1 : 0;
+    return 'M' + s[0].toFixed(2) + ' ' + s[1].toFixed(2) + ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + e[0].toFixed(2) + ' ' + e[1].toFixed(2);
+  }
+  smooth(p) {
+    let d = 'M' + p[0][0].toFixed(1) + ' ' + p[0][1].toFixed(1);
+    for (let i = 0; i < p.length - 1; i++) {
+      const a = p[i - 1] || p[i], b = p[i], c = p[i + 1], e = p[i + 2] || c;
+      d += ' C' + (b[0] + (c[0] - a[0]) / 6).toFixed(1) + ' ' + (b[1] + (c[1] - a[1]) / 6).toFixed(1) + ' ' + (c[0] - (e[0] - b[0]) / 6).toFixed(1) + ' ' + (c[1] - (e[1] - b[1]) / 6).toFixed(1) + ' ' + c[0].toFixed(1) + ' ' + c[1].toFixed(1);
+    }
+    return d;
+  }
+  renderVals() {
+    const sets = [
+      { key: 'A', title: 'SIGNAL', cls: 'ts-signal', rec: 'rec', badge: 'recommended', fNum: 'Doto · round dots', fMono: 'Martian Mono 87.5%', fName: 'Martian Mono 112.5%', fJp: 'Zen Kaku Gothic New / Shippori Mincho', note: '丸いドットの数字が「粒」として光る。デジタルと自然のちょうど中間。現場での読みやすさと個性のバランスが一番良い。' },
+      { key: 'B', title: 'ORGANIC', cls: 'ts-organic', rec: '', badge: 'calm', fNum: 'Geist Mono light', fMono: 'Geist Mono', fName: 'Instrument Serif italic', fJp: 'Zen Kaku Gothic New / Zen Old Mincho', note: '細いモノスペースと斜体のセリフ体。展示やアンビエントのセットに合う静けさ。数字は細く、暗い会場では少し読みにくい。' },
+      { key: 'C', title: 'TERMINAL', cls: 'ts-terminal', rec: '', badge: 'aggressive', fNum: 'Sixtyfour · scanline', fMono: 'Martian Mono 75%', fName: 'Martian Mono 75% heavy', fJp: 'Zen Kaku Gothic New / DotGothic16', note: '走査線のピクセル数字と、ドット和文。テクノやグリッチ寄りの攻撃的な夜に。自然らしさは一番弱い。' }
+    ];
+    const phrase = Array.from({ length: 32 }, (_, i) => {
+      const mk = i % 8 === 0 ? ' mk' : '';
+      if (i < 16) return 'dn' + mk;
+      if (i === 16) return 'on pulse' + mk;
+      return mk.trim();
+    });
+    const knobs = [{ n: 'Energy', v: 0.72, mc: 'on' }, { n: 'Drift', v: 0.3, mc: '' }, { n: 'Chaos', v: 0.41, mc: 'on' }].map((k) => {
+      const p = this.pt(k.v, 6.5);
+      return { ...k, track: this.arc(1), val: this.arc(k.v), px: p[0].toFixed(2), py: p[1].toFixed(2), txt: k.v.toFixed(2).replace(/^0/, '') };
+    });
+    const E = [0.30, 0.31, 0.29, 0.33, 0.36, 0.35, 0.38, 0.42, 0.40, 0.44, 0.47, 0.45, 0.43, 0.46, 0.50, 0.52, 0.49, 0.47, 0.51, 0.55, 0.58, 0.56, 0.54, 0.57, 0.60, 0.63, 0.61, 0.64, 0.68, 0.66, 0.70, 0.72];
+    const tLine = this.smooth(E.map((v, i) => [i * 356 / (E.length - 1), 60 - v * 60]));
+    const tArea = tLine + ' L356 64 L0 64 Z';
+    let gridD = '';
+    for (let x = 0; x <= 356; x += 356 / 8) gridD += 'M' + x.toFixed(1) + ' 0V64';
+    const S = Array.from({ length: 32 }, (_, i) => Math.min(0.95, 0.88 * Math.exp(-i / 13) + 0.18 * Math.pow(Math.sin(i * 0.55 + 0.6), 2) + 0.06));
+    const bw = 356 / 32;
+    let specLo = '', specRest = '';
+    S.forEach((v, i) => {
+      const h = v * 48, x = i * bw + 1.5, r = 'M' + x.toFixed(1) + ' 48V' + (48 - h).toFixed(1) + 'h' + (bw - 3.5).toFixed(1) + 'V48Z';
+      if (i < 6) specLo += r; else specRest += r;
+    });
+    const specEnv = this.smooth(S.map((v, i) => [i * bw + bw / 2, 48 - v * 48 - 3]));
+    const B = [141, 142, 142, 143, 141, 140, 141, 142, 143, 144, 143, 142, 142, 141, 142, 143, 145, 144, 143, 142, 141, 141, 142, 143, 142, 142, 143, 144, 143, 142, 142, 142];
+    const W = [1.2, 1.4, 1.6, 1.5, 1.8, 2.2, 2.0, 1.7, 1.5, 1.9, 2.4, 2.8, 2.5, 2.0, 1.6, 1.4, 2.1, 2.9, 3.0, 2.6, 2.0, 1.7, 1.5, 1.4, 1.6, 1.8, 2.3, 2.6, 2.2, 1.8, 1.5, 1.3];
+    const y = (v) => 28 - (v - 142) * 7;
+    const xs = (i) => i * 356 / (B.length - 1);
+    const mid = this.smooth(B.map((v, i) => [xs(i), y(v)]));
+    const up = this.smooth(B.map((v, i) => [xs(i), y(v + W[i])]));
+    const lowRev = this.smooth(B.map((v, i) => [xs(i), y(v - W[i])]).reverse());
+    const river = up + ' L' + lowRev.slice(1) + ' Z';
+    return { live: this.props.live ?? '#ff6b35', cue: this.props.cue ?? '#5aa2ff', sets, phrase, knobs, tLine, tArea, gridD, specLo, specRest, specEnv, mid, river };
+  }
+}
+</script>
+</body>
+</html>

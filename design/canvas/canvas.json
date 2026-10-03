@@ -1,0 +1,50 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "ConceptA.dc.html": { "h": 1024, "title": "GPT案 A · Console", "w": 1536, "x": 0, "y": 1820 },
+    "ConceptB.dc.html": { "h": 1024, "title": "GPT案 B · Swiss", "w": 1536, "x": 1616, "y": 1820 },
+    "ConceptC.dc.html": { "h": 1024, "title": "GPT案 C · Immersive", "w": 1536, "x": 3232, "y": 1820 },
+    "ConceptD.dc.html": { "h": 1024, "title": "GPT案 D · Timeline", "w": 1536, "x": 4848, "y": 1820 },
+    "Main.dc.html": { "expand": "fill", "h": 960, "title": "Perform · DJ共演", "w": 1440, "x": 0, "y": 0 },
+    "PerformImmersive.dc.html": { "expand": "fill", "h": 900, "title": "Perform · DJ共演（Immersive）", "w": 1440, "x": 0, "y": -1800 },
+    "BandImm.dc.html": { "expand": "fill", "h": 940, "title": "Perform · バンド共演（Immersive）", "w": 1440, "x": 1520, "y": -1800 },
+    "StudioImm.dc.html": { "expand": "fill", "h": 960, "title": "Studio · 静止画から動きへ（Immersive）", "w": 1440, "x": 3040, "y": -1800 },
+    "SetupImm.dc.html": { "expand": "fill", "h": 900, "title": "Setup · 本番前（Immersive）", "w": 1440, "x": 4560, "y": -1800 },
+    "Decisions.dc.html": { "expand": "fill", "h": 1240, "title": "Step 0 · 決定事項（色・書体・名前）", "w": 1440, "x": 6080, "y": -1800 },
+    "PerformBand.dc.html": { "expand": "fill", "h": 920, "title": "Perform · バンド共演", "w": 1440, "x": 1520, "y": 0 },
+    "Session.dc.html": { "expand": "fill", "h": 900, "title": "Setup · 本番前セットアップ", "w": 1440, "x": 4560, "y": 0 },
+    "Studio.dc.html": { "expand": "fill", "h": 940, "title": "Studio · 静止画から動きへ", "w": 1440, "x": 3040, "y": 0 },
+    "Type.dc.html": { "expand": "fill", "h": 1400, "title": "Type · 書体と計器の比較", "w": 1440, "x": 6080, "y": 0 },
+    "StudioConceptA.dc.html": { "h": 1024, "title": "GPT案 Studio A · Notebook", "w": 1536, "x": 6464, "y": 1820 },
+    "StudioConceptB.dc.html": { "h": 1024, "title": "GPT案 Studio B · Flow canvas", "w": 1536, "x": 8080, "y": 1820 }
+  },
+  "createdOnFiles": { "at": "2026-10-03T07:55:00Z", "v": 1 },
+  "designSystems": [],
+  "launch": { "view": "canvas" },
+  "notes": {
+    "rowImm": { "kind": "title1", "maxW": 7520, "text": "Immersive — 確定版（Step 0 完了）", "w": 240, "x": 0, "y": -2100 },
+    "rowGpt": { "kind": "title1", "maxW": 8000, "text": "GPT Image コンセプト — 見た目の方向性の候補", "w": 240, "x": 0, "y": 1520 },
+    "rowProto": { "kind": "title1", "maxW": 7520, "text": "v1 プロトタイプ（参考）— Perform / Studio / Setup / Type", "w": 240, "x": 0, "y": -300 }
+  },
+  "order": [
+    "PerformImmersive.dc.html",
+    "BandImm.dc.html",
+    "StudioImm.dc.html",
+    "SetupImm.dc.html",
+    "Decisions.dc.html",
+    "Main.dc.html",
+    "PerformBand.dc.html",
+    "Studio.dc.html",
+    "Session.dc.html",
+    "Type.dc.html",
+    "ConceptA.dc.html",
+    "ConceptB.dc.html",
+    "ConceptC.dc.html",
+    "ConceptD.dc.html",
+    "StudioConceptA.dc.html",
+    "StudioConceptB.dc.html"
+  ],
+  "pages": [],
+  "title": "SHIKI VJ UI"
+}

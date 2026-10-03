@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>SHIKI Perform — Band</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./shiki.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght,ROND@400..900,100&amp;family=Martian+Mono:wdth,wght@75..112.5,300..800&amp;family=Zen+Kaku+Gothic+New:wght@400;500;700&amp;family=Shippori+Mincho:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#08090a}
+a{color:#8cbcff}a:hover{color:#c2dcff}
+.band{display:grid;grid-template-columns:250px minmax(0,1fr) 340px;gap:10px;flex:1}
+.prev{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,1fr);gap:10px}
+.prev .side{display:flex;flex-direction:column;gap:10px;min-width:0}
+.ratio{aspect-ratio:16/9}
+.raw img{filter:grayscale(1) contrast(.85) brightness(1.15)}
+.lower3{position:absolute;left:5%;bottom:13%;display:flex;flex-direction:column;gap:4px;z-index:1}
+.sl{display:flex;flex-direction:column;gap:3px}
+.sl .row{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:3px 8px;align-items:center;padding:8px;border-radius:2px;border:1px solid transparent}
+.sl .row.done{opacity:.5}
+.sl .row.now{border-color:var(--live);background:#1a120d}
+.sl .row.next{border-color:var(--cue);border-style:dashed}
+.stack{display:flex;gap:4px}
+.sec{display:flex;flex-direction:column;gap:7px;padding:8px;border-radius:2px;background:#14171a;border:1px solid #262b2f;min-width:0;overflow:hidden}
+.sec.done{opacity:.45}
+.sec.now{background:#24140c;border-color:var(--live)}
+.sec.next{border-color:var(--cue);border-style:dashed}
+.sec .w{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sec .cells i{width:3px}
+.go{height:64px;flex:1;font-size:15px;background:var(--cue);color:#03101f;border:0;font-weight:700}
+.go:hover{background:var(--cue);color:#03101f;filter:brightness(1.08)}
+.stems{display:grid;grid-template-columns:46px 32px minmax(0,1fr) auto;gap:11px 8px;align-items:center}
+.map{font-family:var(--f-mono);font-stretch:var(--mono-st);font-size:9.5px;color:var(--live);border:1px solid #5a3424;border-radius:2px;padding:1px 6px;white-space:nowrap}
+.tg{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px}
+@media (max-width:1180px){.band{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.prev{grid-template-columns:minmax(0,1fr)}.stack{flex-wrap:wrap}.panic{margin-left:0}}
+</style>
+</helmet>
+<div class="app" style="--live: {{live}}; --cue: {{cue}}">
+
+<header class="top">
+  <div class="brand">
+    <div class="wordmark">SHIKI</div>
+    <nav class="nav" aria-label="画面"><a href="PerformBand.dc.html" class="on" aria-current="page">Perform</a><a href="Studio.dc.html">Studio</a><a href="Session.dc.html">Setup</a><a href="Type.dc.html">Type</a></nav>
+  </div>
+  <div class="seg" role="group" aria-label="セッションモード">
+    <button type="button">SOLO</button>
+    <a href="Main.dc.html">DJ</a>
+    <a href="PerformBand.dc.html" class="on" aria-current="true">BAND</a>
+  </div>
+  <div class="clock">
+    <div class="stack2">
+      <span class="lbl"><span class="idx">01</span>Clock</span>
+      <span class="mono" style="display: flex; align-items: center; gap: 7px; font-size: 11.5px"><i class="dot warn breathe"></i>AUDIO FOLLOW · 72%</span>
+    </div>
+    <div style="display: flex; align-items: flex-end; gap: 7px">
+      <span class="num" style="font-size: 46px">142</span>
+      <span class="lbl" style="padding-bottom: 3px">BPM ±3</span>
+    </div>
+    <div class="stack2">
+      <span style="display: flex; align-items: baseline; gap: 6px"><span class="lbl">Bar</span><span class="num" style="font-size: 22px">9.2</span></span>
+      <div class="b16" aria-label="2拍目">
+        <span><i class="dn"></i><i class="dn"></i><i class="dn"></i><i class="dn"></i></span>
+        <span><i class="on"></i><i class="on"></i><i class="on pulse"></i><i></i></span>
+        <span><i></i><i></i><i></i><i></i></span>
+        <span><i></i><i></i><i></i><i></i></span>
+      </div>
+    </div>
+    <div class="nudge">
+      <button type="button" class="btn" style="width: 54px">TAP</button>
+      <button type="button" class="btn" aria-label="テンポを遅らせる">−</button>
+      <button type="button" class="btn" aria-label="テンポを進める">+</button>
+      <button type="button" class="btn" aria-label="1拍目に合わせる" style="width: 40px; font-weight: 700">1</button>
+    </div>
+    <span class="chip">FS-1 next cue · FS-2 1拍目</span>
+  </div>
+  <div class="stack2">
+    <span class="lbl">Out 1 · Projector 1920×1080</span>
+    <span class="mono" style="font-size: 11.5px">60.0 fps · GPU 38% · +62 ms</span>
+  </div>
+  <div class="panic" role="group" aria-label="緊急操作">
+    <button type="button" class="btn black">Blackout</button>
+    <button type="button" class="btn">Freeze</button>
+    <button type="button" class="btn">Safe</button>
+    <button type="button" class="btn">Logo</button>
+  </div>
+</header>
+
+<div class="band">
+  <section class="panel" aria-label="セットリスト">
+    <div class="ph"><span style="display: flex; gap: 8px; align-items: baseline"><span class="lbl"><span class="idx">02</span></span><strong class="name" style="font-size: 17px">SETLIST</strong></span><span class="lbl">7 songs</span></div>
+    <div class="sl">
+      <sc-for list="{{setlist}}" as="s" hint-placeholder-count="7">
+        <div class="row {{s.st}}">
+          <span class="mono" style="font-size: 11px; color: #a3a8a2">{{s.no}}</span>
+          <span style="font-size: 13px; font-weight: 500">{{s.t}}</span>
+          <span class="mono" style="font-size: 11px">{{s.bpm}}</span>
+          <span></span>
+          <span class="lbl" style="font-size: 9px">{{s.meta}}</span>
+          <span class="lbl" style="font-size: 9px">{{s.flag}}</span>
+        </div>
+      </sc-for>
+    </div>
+    <p class="jp2" style="margin: 0; font-size: 12.5px; line-height: 1.6; color: #c9c4b8">曲ごとの演出プランは、Studio でデモ音源から作っておきました。</p>
+  </section>
+
+  <div class="col">
+    <div class="prev">
+      <section class="screen scan ratio onair" aria-label="マスター出力">
+        <img src="/_blob/83a266c2a7addc53ea6b09f4432c8520" alt="マスター出力：LIVE CAM">
+        <div class="hud"><i></i><i></i><i></i><i></i></div>
+        <div class="ovl t">
+          <span style="display: flex; gap: 8px; align-items: center"><span class="chip c-live">On Air</span><span class="lbl" style="color: #ece6da">Master · Chorus 2 · Live cam</span></span>
+          <span class="mono" style="font-size: 10.5px">CEILING 70%</span>
+        </div>
+        <div class="lower3">
+          <span class="num" style="font-size: 16px">03</span>
+          <span class="jp2" style="font-size: 20px; font-weight: 600; color: #ece6da">[曲名]</span>
+        </div>
+      </section>
+      <div class="side">
+        <section class="screen scan ratio raw" aria-label="カメラ入力">
+          <img src="/_blob/83a266c2a7addc53ea6b09f4432c8520" alt="カメラ入力 CAM 1">
+          <div class="ovl b"><span class="lbl" style="color: #ece6da">CAM 1 · raw</span><span class="mono" style="font-size: 10px">HDMI cap · 1080p60</span></div>
+        </section>
+        <section class="screen scan ratio oncue" aria-label="次のキュー">
+          <img src="/_blob/09497ebaad8d1fe39614112107f7bfa5" alt="次のキュー：MILK &amp; INK">
+          <div class="ovl b"><span style="display: flex; gap: 6px; align-items: center"><span class="chip c-cue">Next</span><span class="lbl" style="color: #ece6da">Bridge</span></span><span class="mono" style="font-size: 10px">MILK &amp; INK</span></div>
+        </section>
+      </div>
+    </div>
+
+    <section class="panel" aria-label="キュースタック">
+      <div class="ph" style="flex-wrap: wrap">
+        <span style="display: flex; gap: 10px; align-items: baseline"><span class="lbl"><span class="idx">03</span></span><strong class="name" style="font-size: 17px">CUE STACK</strong><span class="lbl">03 [曲名] · 9 cues</span></span>
+        <span class="lbl">Chorus 2 · bar 9 / 16</span>
+      </div>
+      <div class="stack">
+        <sc-for list="{{cues}}" as="c" hint-placeholder-count="9">
+          <div class="sec {{c.st}}" style="flex: {{c.bars}} 1 0">
+            <span class="mono" style="font-size: 10px; letter-spacing: 0.08em">{{c.name}}</span>
+            <span class="w jp2">{{c.work}}</span>
+            <div class="cells"><sc-for list="{{c.ticks}}" as="t" hint-placeholder-count="8"><i class="{{t}}"></i></sc-for></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap">
+        <button type="button" class="btn" style="height: 64px; min-width: 88px">Back</button>
+        <button type="button" class="btn" style="height: 64px; min-width: 120px">Hold · loop</button>
+        <button type="button" class="btn go">GO → Bridge <span class="chip" style="border-color: #03101f; color: #03101f">FS-1</span></button>
+      </div>
+      <p class="jp2" style="margin: 0; font-size: 13px; line-height: 1.6; color: #d6d1c6"><span class="mono t-cue" style="font-size: 10.5px; margin-right: 8px">AI</span>ボーカルが止まり、シンバルが減っています。ブリッジに入りそうです（確信度 64%）。切り替えはあなたの GO で。</p>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="panel" aria-label="ステム入力">
+      <div class="ph"><span class="lbl"><span class="idx">04</span>Stems · FOH AUX 7–11</span><span class="chip c-ok">auto-level on</span></div>
+      <div class="stems">
+        <sc-for list="{{stems}}" as="m" hint-placeholder-count="5">
+          <span class="mono" style="font-size: 11.5px; font-weight: 600">{{m.n}}</span>
+          <span class="mono" style="font-size: 10px; color: #878c87">{{m.src}}</span>
+          <div class="sm anim" style="--v: {{m.v}}%; --lo: {{m.lo}}%; --pk: {{m.pk}}%; --d: {{m.d}}s"><i></i><b></b></div>
+          <span class="map">→ {{m.map}}</span>
+        </sc-for>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="レイヤー">
+      <span class="lbl"><span class="idx">05</span>Layers</span>
+      <label class="tg"><span>曲名テロップ</span><input class="cb" type="checkbox" checked="checked"></label>
+      <label class="tg"><span>[BAND LOGO]</span><input class="cb" type="checkbox"></label>
+      <label class="tg"><span>カメラを作品に合成（CAM 1）</span><input class="cb" type="checkbox" checked="checked"></label>
+      <label class="stack2" style="gap: 4px">
+        <span class="ph"><span>強度の上限</span><span class="num" style="font-size: 20px">70</span></span>
+        <input class="rng" type="range" min="0" max="100" value="70">
+        <span class="jp2" style="font-size: 12px; color: #c9c4b8">主役はバンド。映像が前に出すぎないよう全体を抑えます。</span>
+      </label>
+    </section>
+
+    <section class="panel" aria-label="テンポ追従">
+      <div class="ph"><span class="lbl"><span class="idx">06</span>Tempo follow · 32 bars</span><span class="chip c-warn">confidence 72%</span></div>
+      <svg class="terrain" viewBox="0 0 316 56" preserveAspectRatio="none" height="56" aria-hidden="true">
+        <defs><pattern id="rdots" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1.2" cy="1.2" r="0.75" fill="#ffc65a" fill-opacity="0.45"></circle></pattern></defs>
+        <path class="grid" d="{{gridD}}"></path>
+        <line class="thr" x1="0" y1="28" x2="316" y2="28"></line>
+        <path d="{{river}}" fill="url(#rdots)"></path>
+        <path class="line" d="{{mid}}"></path>
+      </svg>
+      <p class="jp2" style="margin: 0; font-size: 12.5px; line-height: 1.6; color: #d6d1c6">揺れは ±3 BPM。ずれたら「1」を叩けばすぐ補正します。曲04はクリックありなので、始まったら MTC 同期に自動で切り替えます。</p>
+    </section>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"live":{"editor":"color","default":"#ff6b35","options":["#ff6b35","#ffb547","#ff3b5c"],"section":"Theme"},"cue":{"editor":"color","default":"#5aa2ff","options":["#5aa2ff","#7cc4ff","#9d8cff"],"section":"Theme"},"$preview":{"width":1440,"height":920}}'>
+class Component extends DCLogic {
+  smooth(p) {
+    let d = 'M' + p[0][0].toFixed(1) + ' ' + p[0][1].toFixed(1);
+    for (let i = 0; i < p.length - 1; i++) {
+      const a = p[i - 1] || p[i], b = p[i], c = p[i + 1], e = p[i + 2] || c;
+      d += ' C' + (b[0] + (c[0] - a[0]) / 6).toFixed(1) + ' ' + (b[1] + (c[1] - a[1]) / 6).toFixed(1) + ' ' + (c[0] - (e[0] - b[0]) / 6).toFixed(1) + ' ' + (c[1] - (e[1] - b[1]) / 6).toFixed(1) + ' ' + c[0].toFixed(1) + ' ' + c[1].toFixed(1);
+    }
+    return d;
+  }
+  renderVals() {
+    const setlist = [
+      { no: '01', t: 'OPENING SE', bpm: '—', meta: '1 cue', flag: 'done', st: 'done' },
+      { no: '02', t: '[曲名]', bpm: '≈128', meta: '7 cues · click なし', flag: 'done', st: 'done' },
+      { no: '03', t: '[曲名]', bpm: '≈142', meta: '9 cues · click なし', flag: 'now', st: 'now' },
+      { no: '04', t: '[曲名]', bpm: '96', meta: '6 cues · MTC', flag: 'next', st: 'next' },
+      { no: '05', t: '[曲名]', bpm: '≈150', meta: '8 cues · click なし', flag: '', st: '' },
+      { no: '06', t: '[曲名]', bpm: '≈118', meta: '5 cues · click なし', flag: '', st: '' },
+      { no: 'EN', t: '[曲名]', bpm: '≈160', meta: '4 cues · click なし', flag: '', st: '' }
+    ];
+    const C = [
+      { name: 'INTRO', bars: 8, work: 'BLOOM', st: 'done' },
+      { name: 'VERSE 1', bars: 16, work: 'INK TIDE', st: 'done' },
+      { name: 'PRE', bars: 8, work: 'INK TIDE 濃', st: 'done' },
+      { name: 'CHORUS', bars: 16, work: 'LIVE CAM', st: 'done' },
+      { name: 'VERSE 2', bars: 16, work: 'INK TIDE', st: 'done' },
+      { name: 'CHORUS 2', bars: 16, work: 'LIVE CAM', st: 'now' },
+      { name: 'BRIDGE', bars: 8, work: 'MILK & INK', st: 'next' },
+      { name: 'LAST CHO', bars: 16, work: 'LIVE CAM 残像', st: '' },
+      { name: 'OUTRO', bars: 8, work: '→ SAFE', st: '' }
+    ];
+    const cues = C.map((c) => ({
+      ...c,
+      ticks: Array.from({ length: c.bars }, (_, i) => {
+        const mk = i % 4 === 0 ? ' mk' : '';
+        if (c.st === 'done') return 'dn' + mk;
+        if (c.st === 'now') return (i < 8 ? 'dn' : i === 8 ? 'on pulse' : '') + mk;
+        return mk.trim();
+      })
+    }));
+    const stems = [
+      { n: 'KICK', src: 'IN 1', v: 86, lo: 30, pk: 92, d: 0.476, map: 'zoom pulse' },
+      { n: 'SNARE', src: 'IN 2', v: 64, lo: 18, pk: 74, d: 0.952, map: 'flash ≤4/s' },
+      { n: 'BASS', src: 'IN 3', v: 58, lo: 40, pk: 66, d: 1.9, map: 'drift' },
+      { n: 'GTR', src: 'IN 4', v: 78, lo: 56, pk: 84, d: 0.7, map: 'chaos' },
+      { n: 'VOX', src: 'IN 5', v: 22, lo: 4, pk: 60, d: 1.4, map: 'brightness' }
+    ];
+    const B = [141, 142, 142, 143, 141, 140, 141, 142, 143, 144, 143, 142, 142, 141, 142, 143, 145, 144, 143, 142, 141, 141, 142, 143, 142, 142, 143, 144, 143, 142, 142, 142];
+    const W = [1.2, 1.4, 1.6, 1.5, 1.8, 2.2, 2.0, 1.7, 1.5, 1.9, 2.4, 2.8, 2.5, 2.0, 1.6, 1.4, 2.1, 2.9, 3.0, 2.6, 2.0, 1.7, 1.5, 1.4, 1.6, 1.8, 2.3, 2.6, 2.2, 1.8, 1.5, 1.3];
+    const y = (v) => 28 - (v - 142) * 7;
+    const xs = (i) => i * 316 / (B.length - 1);
+    const mid = this.smooth(B.map((v, i) => [xs(i), y(v)]));
+    const up = this.smooth(B.map((v, i) => [xs(i), y(v + W[i])]));
+    const lowRev = this.smooth(B.map((v, i) => [xs(i), y(v - W[i])]).reverse());
+    const river = up + ' L' + lowRev.slice(1) + ' Z';
+    let gridD = '';
+    for (let x = 0; x <= 316; x += 316 / 8) gridD += 'M' + x.toFixed(1) + ' 0V56';
+    return { live: this.props.live ?? '#ff6b35', cue: this.props.cue ?? '#5aa2ff', setlist, cues, stems, mid, river, gridD };
+  }
+}
+</script>
+</body>
+</html>

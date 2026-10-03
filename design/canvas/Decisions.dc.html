@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>SHIKI — Step 0 decisions</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./shiki.css">
+<link rel="stylesheet" href="./imm.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght,ROND@400..900,100&amp;family=Martian+Mono:wdth,wght@75..112.5,200..800&amp;family=Zen+Kaku+Gothic+New:wght@300;400;500;700&amp;family=Shippori+Mincho:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#050607}
+a{color:#bfeef6}a:hover{color:#e2f8fb}
+.ui{grid-template-columns:repeat(3,minmax(0,1fr));align-content:start;row-gap:18px}
+.sec{grid-column:1 / -1;display:flex;align-items:baseline;gap:14px;margin-top:6px}
+.opt{gap:12px}
+.opt.rec{border-color:rgba(236,230,218,.55)}
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mini{display:flex;flex-direction:column;gap:6px}
+.mini .screen{aspect-ratio:16/9}
+.lib3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.lib3 .screen{aspect-ratio:1.45}
+.note{font-family:var(--f-jp2);font-size:13px;line-height:1.65;color:#e2ddd2;margin:0}
+.spec{grid-column:1 / -1;display:grid;grid-template-columns:200px minmax(0,1fr) 260px;gap:14px 20px;align-items:baseline}
+.spec .k{font-family:var(--f-mono);font-stretch:var(--mono-st);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#a3a8a2}
+.spec .f{font-family:var(--f-mono);font-stretch:var(--mono-st);font-size:10.5px;color:#c9c4b8}
+.names{grid-column:1 / -1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.nm{gap:8px}
+.nm .wm{font-size:22px}
+@media (max-width:1100px){.ui{grid-template-columns:minmax(0,1fr)}.spec{grid-template-columns:minmax(0,1fr)}.names{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.names{grid-template-columns:minmax(0,1fr)}}
+</style>
+</helmet>
+<div class="app imm" style="--live: #ff7a45; --cue: #9fe6f2">
+  <img class="bg haze" src="/_blob/1c3bb24527e64362fe5ce2a7e4fc3e09" alt="">
+  <div class="vig"></div>
+
+  <div class="ui">
+    <header class="topi">
+      <div class="bl">
+        <span class="wm">SHIKI</span>
+        <i class="slash" aria-hidden="true"></i>
+        <span class="stack2" style="gap: 3px"><span class="ttl">STEP 0</span><span class="lbl" style="font-size: 8.5px; letter-spacing: 0.2em">Decisions</span></span>
+      </div>
+      <p class="jp2" style="margin: 0; max-width: 640px; font-size: 14px; line-height: 1.7; color: #e2ddd2">2026-10-03 決定。色は火 × 氷、書体は SIGNAL を細くした版、名前は SHIKI。</p>
+    </header>
+
+    <div class="sec"><span class="lbl" style="color: #ece6da">01 · On air / Cue</span><span style="font-size: 12px; color: #a3a8a2">本番中に「今出ている映像」と「次に出す映像」を見分ける色 → ② 火 × 氷 に決定。火は放送中だけに使い、ほかのアクセントは氷</span></div>
+    <sc-for list="{{opts}}" as="o" hint-placeholder-count="3">
+      <section class="glass opt {{o.rec}}" style="--live: {{o.live}}; --cue: {{o.cue}}" aria-label="{{o.title}}">
+        <div class="gh"><span class="t"><span class="mono" style="font-size: 12px; font-weight: 700">{{o.key}}</span><span style="font-size: 15px; font-weight: 500">{{o.title}}</span></span><span class="lbl" style="color: #cfe6b4">{{o.badge}}</span></div>
+        <div class="pair">
+          <div class="mini">
+            <div class="screen scan air-out"><img src="/_blob/1c3bb24527e64362fe5ce2a7e4fc3e09" alt="ON AIR の例"></div>
+            <span style="display: flex; gap: 8px; align-items: baseline"><span class="dl" style="font-size: 16px">A</span><span class="onair">ON AIR</span></span>
+            <div class="under"></div>
+          </div>
+          <div class="mini">
+            <div class="screen scan cue-out"><img src="/_blob/03c9c29c4eece0cb452abc40871c91b4" alt="CUE の例"></div>
+            <span style="display: flex; gap: 8px; align-items: baseline"><span class="dl" style="font-size: 16px">B</span><span class="oncue">CUE</span></span>
+            <div class="under cue"></div>
+          </div>
+        </div>
+        <div class="lib3">
+          <div class="screen air-out"><img src="/_blob/1c3bb24527e64362fe5ce2a7e4fc3e09" alt=""></div>
+          <div class="screen cue-out"><img src="/_blob/03c9c29c4eece0cb452abc40871c91b4" alt=""></div>
+          <div class="screen"><img src="/_blob/8745d6a3a561341a329143d0b30fe8bc" alt=""></div>
+        </div>
+        <div class="bd"><span><i class="dn"></i><i class="dn"></i><i class="dn"></i><i class="dn"></i></span><span><i class="dn"></i><i class="on"></i><i></i><i></i></span><span><i></i><i></i><i></i><i></i></span><span><i></i><i></i><i></i><i></i></span></div>
+        <p class="note">{{o.note}}</p>
+      </section>
+    </sc-for>
+
+    <div class="sec"><span class="lbl" style="color: #ece6da">02 · Type</span><span style="font-size: 12px; color: #a3a8a2">決定：SIGNAL を Immersive 用に細くした版。ほかの候補は Type ボードに残しています</span></div>
+    <section class="glass" style="grid-column: 1 / -1" aria-label="書体">
+      <div class="spec">
+        <span class="k">Wordmark · titles</span><span class="wm" style="font-size: 26px">SHIKI / PERFORM</span><span class="f">Martian Mono 200–300 · wide · tracking .42em</span>
+        <span class="k">Numbers</span><span style="display: flex; gap: 28px; align-items: baseline"><span class="num" style="font-size: 44px">126.0</span><span class="num" style="font-size: 28px">17.3</span><span class="num" style="font-size: 28px">00:42</span></span><span class="f">Doto · round dots · 800</span>
+        <span class="k">Labels</span><span class="lbl" style="font-size: 12px; color: #ece6da">Macro · Deck A · Phrase 16 bars</span><span class="f">Martian Mono 87.5% · caps</span>
+        <span class="k">Names</span><span style="display: flex; gap: 14px; align-items: baseline"><strong class="name" style="font-size: 22px">MOONSEA</strong><span class="jp2" style="font-size: 20px">月海</span></span><span class="f">Martian Mono 112.5% / Shippori Mincho</span>
+        <span class="k">UI · 和文</span><span style="font-size: 14px">次のフレーズ頭で切替 · あと 7 小節</span><span class="f">Zen Kaku Gothic New 400</span>
+        <span class="k">AI voice</span><span class="jp2" style="font-size: 17px; line-height: 1.6">エネルギーが上がっています。次は、走査線の作品を。</span><span class="f">Shippori Mincho 400</span>
+      </div>
+    </section>
+
+    <div class="sec"><span class="lbl" style="color: #ece6da">03 · Name</span><span style="font-size: 12px; color: #a3a8a2">決定：SHIKI。商標とドメインはこれから確認します</span></div>
+    <div class="names">
+      <sc-for list="{{names}}" as="n" hint-placeholder-count="4">
+        <section class="glass nm {{n.rec}}" aria-label="{{n.en}}">
+          <div class="ph"><span class="wm">{{n.en}}</span><span class="lbl" style="color: #cfe6b4">{{n.badge}}</span></div>
+          <span class="jp2" style="font-size: 18px">{{n.jp}}</span>
+          <p class="note">{{n.note}}</p>
+        </section>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const opts = [
+      { key: '①', title: '氷 × 白（C案のまま）', live: '#9fe6f2', cue: '#ece6da', rec: '', badge: '', note: 'C案そのまま。世界観に一番なじむ。ただ両方とも明るい寒色で、暗い会場では見分けが実線か点線かに頼りがち。' },
+      { key: '②', title: '火 × 氷', live: '#ff7a45', cue: '#9fe6f2', rec: 'rec', badge: '採用', note: '放送中だけが暖色。氷の世界に火がひとつ灯る。いま客席に出ている映像が、一瞬で分かる。' },
+      { key: '③', title: '氷 × 琥珀', live: '#9fe6f2', cue: '#ffc65a', rec: '', badge: '', note: '世界観はそのまま、準備側にだけ暖色を足す。キューの見落としは減るが、放送中の強さは①と同じ。' }
+    ];
+    const names = [
+      { en: 'SHIKI', jp: '式 · 色 · 四季', rec: 'opt rec', badge: '採用', note: '数式で色を作り、季節のように移ろわせる。' },
+      { en: 'UTSUSHI', jp: '映し · 写し', rec: '', badge: '', note: '音を映す道具。静止画を写し取って動かす制作の流れとも重なる。' },
+      { en: 'HAMON', jp: '波紋', rec: '', badge: '', note: '音が水面に広がるように映像が反応する。短く、海外でも読みやすい。' },
+      { en: 'KEHAI', jp: '気配', rec: '', badge: '', note: '見えないものの気配を映像にする。静かな作風に寄せたいとき。' }
+    ];
+    return { opts, names };
+  }
+}
+</script>
+</body>
+</html>
