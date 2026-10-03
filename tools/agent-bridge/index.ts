@@ -93,12 +93,31 @@ function worksIn(root: string): string[] {
   return existsSync(dir) ? readdirSync(dir).filter((d) => !d.startsWith('.')) : [];
 }
 
-function prompt(job: Job, framePath: string | null): string {
+function readIf(path: string): string | null {
+  try {
+    return readFileSync(path, 'utf8').trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The context docs are inlined (each "read this first" costs the agent a turn). AGENTS.md is not: both CLIs load it
+ * as project instructions on their own.
+ */
+function prompt(job: Job, framePath: string | null, root: string): string {
   const target = job.mode === 'create' ? 'a NEW work' : `the work in works/${job.workId}/`;
+  const doc = (title: string, body: string | null) => (body ? `<${title}>\n${body}\n</${title}>` : '');
+  const notes = job.workId
+    ? readIf(join(root, 'works', job.workId, 'NOTES.md')) ?? readIf(join(root, 'works', job.workId, 'README.md'))
+    : null;
   return [
     'You are an artist-engineer inside SHIKI, a real-time audio-reactive visual instrument for VJ performance.',
     'The human only gives briefs and feedback; you make the work.',
-    `Read first: AGENTS.md (instrument contract, shader conventions, artistic intent), docs/philosophy.md (the user's aim — it overrides polish), docs/taste.md (the user's cross-work preferences)${job.workId ? `, works/${job.workId}/NOTES.md if it exists (this work's direction and history)` : ''}.`,
+    'AGENTS.md (instrument contract, shader conventions, artistic intent) is already in your instructions. The documents below are their current contents — read them again only to edit them.',
+    doc('philosophy', readIf(join(root, 'docs/philosophy.md'))),
+    doc('taste', readIf(join(root, 'docs/taste.md'))),
+    doc('work-notes', notes),
     job.mode === 'create'
       ? 'Task: create a new work from the brief below. Choose a short lowercase id (a-z, 0-9, -) and create works/<id>/ following the instrument contract (index.ts + shaders); manifest.id must equal the folder name. Include works/<id>/NOTES.md with the concept, the choreography (kick, anticipation, tension, drop) and the macros.'
       : `Task: change ${target} according to the feedback below.`,
@@ -110,6 +129,7 @@ function prompt(job: Job, framePath: string | null): string {
     'Never just vibrate with the audio: drive choreography (tension → release, inertia, anticipation, boundary breaks).',
     'GLSL is compiled at runtime, not by tsc: copy the plumbing of works/moonsea (fullscreen fragment shaders declare `varying vec2 vUv;` themselves). After you finish, the platform compiles the work in the live preview and sends any error back to you.',
     'Before finishing run `npx tsc --noEmit` and fix errors in your files. Do not commit, do not start servers.',
+    'Shell commands you may run: npx tsc --noEmit, npm run typecheck, npx vitest run <path>, npm test, ls. Anything else is refused — use Read / Glob / Grep instead. Nobody approves anything during the run.',
     framePath
       ? `The frame the user is looking at right now: ${framePath}${job.agent === 'claude' ? ' (open it with the Read tool).' : ' (attached).'}`
       : '',
@@ -126,6 +146,9 @@ function spawnAgent(job: Job, text: string, root: string, framePath: string | nu
   const env = agentEnv();
   if (job.agent === 'claude') {
     // The prompt goes through stdin: no argv length limit, and stray control bytes cannot break the spawn.
+    // Kept lean for speed: no MCP servers, skills or user-level plugins, only the tools the job needs, and the
+    // ECC plugin's hooks on their minimal profile (its per-tool hooks and fact-forcing gate tripled run times).
+    // Only affects these Studio runs, not the user's own Claude Code sessions.
     const args = [
       '-p',
       '--model', job.model,
@@ -133,9 +156,14 @@ function spawnAgent(job: Job, text: string, root: string, framePath: string | nu
       '--output-format', 'stream-json',
       '--verbose',
       '--permission-mode', 'acceptEdits',
-      '--allowedTools', 'Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash(npx tsc:*)', 'Bash(npx vitest:*)',
+      '--strict-mcp-config',
+      '--disable-slash-commands',
+      '--setting-sources', 'project,local',
+      '--tools', 'Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash',
+      '--allowedTools', 'Read', 'Edit', 'Write', 'Glob', 'Grep',
+      'Bash(npx tsc:*)', 'Bash(npm run typecheck:*)', 'Bash(npx vitest:*)', 'Bash(npm test:*)', 'Bash(ls:*)',
     ];
-    const p = spawn('claude', args, { cwd: root, env, detached: true, stdio: ['pipe', 'pipe', 'pipe'] });
+    const p = spawn('claude', args, { cwd: root, env: { ...env, ECC_HOOK_PROFILE: 'minimal' }, detached: true, stdio: ['pipe', 'pipe', 'pipe'] });
     p.stdin?.end(text);
     return p;
   }
@@ -283,7 +311,7 @@ export function agentBridge(): Plugin {
         emit(job, { type: 'status', text: `${agent} · ${model} · ${effort} で開始` });
         let proc: ChildProcess;
         try {
-          proc = spawnAgent(job, prompt(job, framePath), root, framePath);
+          proc = spawnAgent(job, prompt(job, framePath, root), root, framePath);
         } catch (err) {
           job.state = 'error';
           emit(job, { type: 'error', text: String(err) });

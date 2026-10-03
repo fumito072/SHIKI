@@ -51,9 +51,14 @@ Codex は担当ファイル以外を触らない。ほかに変更が必要な�
 | | Claude Code | Codex |
 |---|---|---|
 | 起動 | `claude -p … --model <ID> --effort <e> --output-format stream-json --permission-mode acceptEdits` | `codex exec -m <slug> -c model_reasoning_effort=<e> --json -s workspace-write [-i 画面]` |
-| 使える道具 | Read / Edit / Write / Glob / Grep、`npx tsc`、`npx vitest` | 作業フォルダ内の読み書きとコマンド |
+| 使える道具 | Read / Edit / Write / Glob / Grep、`npx tsc`、`npm run typecheck`、`npx vitest`、`npm test`、`ls` | 作業フォルダ内の読み書きとコマンド |
 | モデル | Fable 5.1 / Opus 5.5 / Sonnet 5.5 / Haiku 4.5 | `codex debug models` の一覧（表示対象のもの） |
 
+- Claude は軽量な起動にしている（`--strict-mcp-config`、`--disable-slash-commands`、`--setting-sources project,local`、
+  ツールは Read / Edit / Write / Glob / Grep / Bash のみ、ECC プラグインのフックは `ECC_HOOK_PROFILE=minimal`）。
+  同じ1行の編集で 33.8 秒 → 13.0 秒、費用も約 4 割。ユーザーが普段使う Claude Code の設定には影響しない
+- 哲学（docs/philosophy.md）、好み（docs/taste.md）、作品メモ（NOTES.md）は指示文に直接埋め込む（読みに行く往復を省く）。
+  AGENTS.md は両 CLI がプロジェクトの指示として自動で読む
 - 1作品につき同時に1件。FB の前に `works/<id>/` を `.agents/history/<id>/<日時>/` に保存する（Versions の「戻す」で復元）
 - 指示文は AGENTS.md、docs/philosophy.md、docs/taste.md、works/<id>/NOTES.md を先に読ませ、触ってよいのは対象の作品フォルダだけ
 - 終わったら操作画面が作品を読み込み直して検証し、シェーダーのコンパイルエラーなどはそのまま修復依頼として送り返す（最大2回）
