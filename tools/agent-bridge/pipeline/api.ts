@@ -1,6 +1,6 @@
 import type { Connect } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createReadStream, existsSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, statSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import type { Director, Job } from './types';
@@ -11,6 +11,8 @@ import type { Emit } from './jobs';
 import { LoraClient } from './lora';
 import { runRound } from './round';
 import { buildInputs, prepareBuild } from './build';
+import { Likes } from './likes';
+import { execFile } from 'node:child_process';
 
 async function body(req: IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
@@ -33,8 +35,10 @@ function send(res: ServerResponse, status: number, value: unknown) {
 export function installPipeline(middleware: Connect.Server, root: string, jobs: Map<string, Job>, emit: Emit,
   launchWork: (job: Job, images: string[]) => Promise<string>, snapshot: (work: string, note: Record<string, unknown>) => string) {
   const store = new Store(root), lora = new LoraClient(root);
+  const likes = new Likes(store);
   try {
     store.recover();
+    likes.syncAll();
   } catch {
     /* a broken project.json must not stop the dev server */
   }
@@ -50,7 +54,7 @@ export function installPipeline(middleware: Connect.Server, root: string, jobs: 
   };
   middleware.use('/__shiki/studio', (req, res, next) => {
     const url = new URL(req.url ?? '/', 'http://local'), path = url.pathname.replace(/^\//, '');
-    const methods: Record<string, string> = { projects: 'GET|POST', project: 'GET', 'project/update': 'POST', 'project/refs': 'POST', 'project/refs/remove': 'POST', 'project/round': 'POST', 'project/rate': 'POST', 'project/choose': 'POST', 'project/build': 'POST', file: 'GET', 'lora/status': 'GET', 'lora/start': 'POST' };
+    const methods: Record<string, string> = { projects: 'GET|POST', project: 'GET', 'project/update': 'POST', 'project/refs': 'POST', 'project/refs/remove': 'POST', 'project/round': 'POST', 'project/rate': 'POST', 'project/choose': 'POST', 'project/build': 'POST', file: 'GET', 'lora/status': 'GET', 'lora/start': 'POST', likes: 'GET', 'likes/file': 'GET', 'likes/reveal': 'POST' };
     if (!methods[path]) return next();
     void (async () => {
       if (!methods[path].split('|').includes(req.method ?? '')) return send(res, 405, { error: `${methods[path]} only` });
@@ -69,13 +73,37 @@ export function installPipeline(middleware: Connect.Server, root: string, jobs: 
         const stream = createReadStream(file);
         stream.on('error', () => res.destroy()); stream.pipe(res); return;
       }
+      if (path === 'likes') return send(res, 200, { dir: likes.dir, items: likes.list() });
+      if (path === 'likes/file') {
+        let file: string;
+        try {
+          file = likes.image(url.searchParams.get('path'));
+        } catch {
+          return send(res, 404, { error: 'Not found' });
+        }
+        res.setHeader('content-type', 'image/png');
+        res.setHeader('cache-control', 'private, max-age=3600');
+        res.setHeader('x-content-type-options', 'nosniff');
+        const stream = createReadStream(file);
+        stream.on('error', () => res.destroy()); stream.pipe(res); return;
+      }
+      if (path === 'likes/reveal') {
+        // Opens the library in Finder (dev server runs on the user's Mac).
+        mkdirSync(likes.dir, { recursive: true });
+        execFile('open', [likes.dir], () => {});
+        return send(res, 200, { dir: likes.dir });
+      }
       if (path === 'lora/status') return send(res, 200, await lora.status());
       if (path === 'lora/start') { await lora.start(); return send(res, 200, await lora.status()); }
       const b = await body(req);
       if (path === 'projects') return send(res, 200, store.create(b.title, b.brief, b.refs, b.slug));
       const project = store.get(b.id);
       if (path === 'project/update') return send(res, 200, store.update(project.id, b.title, b.brief));
-      if (path === 'project/rate') return send(res, 200, store.rate(project.id, b.item, b.rating, b.note));
+      if (path === 'project/rate') {
+        const saved = store.rate(project.id, b.item, b.rating, b.note);
+        likes.sync(saved, store.item(saved, b.item));
+        return send(res, 200, saved);
+      }
       idle(project.id);
       if (path === 'project/refs') return send(res, 200, store.addRefs(project.id, b.refs));
       if (path === 'project/refs/remove') return send(res, 200, store.removeRef(project.id, b.path));

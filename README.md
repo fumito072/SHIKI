@@ -54,6 +54,9 @@ npm run dev             # http://localhost:5173 を Chrome で開く
    終わると自動でプレビューに読み込んで検証し、動かなければ同じエージェントに直させる（最大2回）
 5. **Perform**：できた作品がデッキに入る
 
+- **♥ Likes**：♥ を付けた画像は、制作をまたいで `library/likes/<制作>/` に画像とプロンプト・ひとこと付きで保存される
+  （♥ を外すと消える。制作を消しても残る。git には入れない）。中央の「♥ Likes」で一覧、「参考に」で開いている制作の参考画像に、
+  「Finder で開く」でフォルダへ。保存先は環境変数 `SHIKI_LIBRARY_DIR` で変えられる（例：iCloud Drive のフォルダ）
 - 右の「作品を直す」タブでは、既存の作品のコードに直接 FB できる（今の画面の添付、FB 前の版への巻き戻し付き）
 - Perform 画面下の **AI プロンプト** は、キュー側（出ていない方）のデッキの作品をその場で直す
 - 全作品に共通する好みは [docs/taste.md](docs/taste.md)、Pinterest の傾向は [docs/pinterest-aesthetic.md](docs/pinterest-aesthetic.md)、

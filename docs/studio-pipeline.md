@@ -64,3 +64,11 @@ UIは既存の `/__shiki/agent/events?job=`（SSE）、`cancel?job=`（POST）�
 キービジュアルを選び直すとstudy選定は解除される。
 キャンセルは全子プロセス群を停止し、待機中の画像もerrorとして保存する。
 すでに別途起動済みのLoRAサーバー内部で走る生成はAPIに停止機能がないため続くが、結果を取り込まない。
+
+## ♥ ライブラリ
+
+`project/rate` のたびに、♥ の画像を `library/likes/<project>/<item>.png` に複製し、同名の `.json`
+（`project, projectTitle, item, title, stage, engine, prompt, motion?, note, likedAt`(epoch ms)`, file`）を書く。
+♥ を外すと消す。起動時に全制作と突き合わせて揃える（以前の ♥ も保存される）。保存先は `SHIKI_LIBRARY_DIR` で変更可。
+API：`GET likes`（`{dir, items}`）、`GET likes/file?path=<project>/<item>.png`、`POST likes/reveal`（Finder で開く）。
+

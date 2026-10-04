@@ -29,6 +29,10 @@ interface JobRow {
   id: string; state: string; projectId?: string; kind?: string; agent: AgentId; model: string; effort: string;
   mode: 'feedback' | 'create'; workId: string | null; message: string; started: number;
 }
+interface LikeEntry {
+  project: string; projectTitle: string; item: string; title: string; stage: 'look' | 'motion';
+  engine: Engine; prompt: string; motion?: string; note: string; likedAt: number; file: string;
+}
 interface Version { version: string; message?: string; agent?: string; model?: string; effort?: string; at?: number; restore?: boolean; attempt?: number }
 
 export interface StudioHost {
@@ -99,6 +103,10 @@ export function mountStudio(host: StudioHost) {
   let lora: LoraStatus | null = null;
   let pendingRefs: string[] = [];
   let holeKey = '';
+  /** The ♥ library across all projects (library/likes, kept even if a project is deleted). */
+  let likesOpen = false;
+  let likes: LikeEntry[] = [];
+  let likesDir = '';
   const counts = { gpt: 4, lora: 2, motion: 10, weight: 0.75 };
 
   // ======================================================================================== steps + PGM monitor
@@ -145,15 +153,16 @@ export function mountStudio(host: StudioHost) {
 
   // ======================================================================================== center: the gallery
   const viewBtns = {
-    look: h('button', { type: 'button', onclick: () => { view = 'look'; roundIx = -1; render(); } }, 'Key visual'),
-    motion: h('button', { type: 'button', onclick: () => { view = 'motion'; roundIx = -1; render(); } }, 'Motion'),
+    look: h('button', { type: 'button', onclick: () => { likesOpen = false; view = 'look'; roundIx = -1; render(); } }, 'Key visual'),
+    motion: h('button', { type: 'button', onclick: () => { likesOpen = false; view = 'motion'; roundIx = -1; render(); } }, 'Motion'),
+    likes: h('button', { type: 'button', title: 'すべての制作の ♥（library/likes に保存）', onclick: () => { likesOpen = true; void loadLikes(); } }, '♥ Likes'),
   };
   const roundsNav = h('div', { class: 'rounds' });
   const notesEl = h('div', { class: 'dnotes jp2' });
   const grid = h('div', { class: 'gallery' });
   const empty = h('div', { class: 'empty jp2' });
   const center = h('section', { class: 'glass scenter' },
-    h('div', { class: 'ph' }, h('div', { class: 'pq', role: 'tablist' }, viewBtns.look, viewBtns.motion), roundsNav),
+    h('div', { class: 'ph' }, h('div', { class: 'pq', role: 'tablist' }, viewBtns.look, viewBtns.motion, viewBtns.likes), roundsNav),
     notesEl,
     h('div', { class: 'gscroll' }, grid, empty),
   );
@@ -563,14 +572,57 @@ export function mountStudio(host: StudioHost) {
 
   function zoom(it: Item) {
     if (!project || !it.file) return;
+    zoomTo(fileUrl(project.id, it.file), it.title, it.motion, it.prompt);
+  }
+  function zoomTo(src: string, title: string, motion: string | undefined, prompt: string) {
     zoomEl.replaceChildren(
-      h('img', { src: fileUrl(project.id, it.file), alt: it.title }),
+      h('img', { src, alt: title }),
       h('div', { class: 'zcap' },
-        h('strong', { class: 'name' }, it.title),
-        it.motion ? h('p', { class: 'jp2' }, it.motion) : null,
-        h('p', { class: 'mono zp' }, it.prompt)),
+        h('strong', { class: 'name' }, title),
+        motion ? h('p', { class: 'jp2' }, motion) : null,
+        h('p', { class: 'mono zp' }, prompt)),
     );
     zoomEl.hidden = false;
+  }
+
+  // ---------------------------------------------------------------------------------------- ♥ library
+  const likeUrl = (e: LikeEntry) => `${API}/likes/file?path=${encodeURIComponent(e.file)}`;
+  async function loadLikes() {
+    const r = await getJson<{ dir: string; items: LikeEntry[] }>(`${API}/likes`);
+    likes = r?.items ?? [];
+    likesDir = r?.dir ?? '';
+    render();
+  }
+  async function unlike(e: LikeEntry) {
+    await postJson(`${API}/project/rate`, { id: e.project, item: e.item, rating: 0 });
+    if (project?.id === e.project) await reload();
+    await loadLikes();
+  }
+  /** Puts a liked image (from any project) into the open project's references. */
+  async function useAsRef(e: LikeEntry) {
+    if (!project) return status('参考画像に使うには、先に制作を開いてください', 'err');
+    const blob = await (await fetch(likeUrl(e))).blob();
+    await addRefs([new File([blob], `${e.item}.png`, { type: 'image/png' })]);
+    status(`「${e.title}」を参考画像に加えました`, 'ok');
+  }
+  function likeCard(e: LikeEntry) {
+    const when = new Date(e.likedAt).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+    return h('article', { class: `card ${e.stage} liked` },
+      h('div', { class: 'screen scan' },
+        h('img', { src: likeUrl(e), alt: e.title, loading: 'lazy' }),
+        h('span', { class: `chip eng${e.engine === 'pinterest-lora' ? ' pin' : ''}` }, `${e.stage === 'motion' ? 'Motion' : 'Key'} · ${e.engine === 'pinterest-lora' ? 'Pinterest' : 'GPT'}`),
+        h('button', { type: 'button', class: 'zoom', title: '大きく見る', 'aria-label': '大きく見る', onclick: () => zoomTo(likeUrl(e), e.title, e.motion, e.prompt) }, '⤢'),
+      ),
+      h('div', { class: 'ctitle' },
+        h('strong', { class: 'name' }, e.title),
+        h('span', { class: 'rbs' },
+          h('button', { type: 'button', class: 'rb pickb', title: '開いている制作の参考画像にする', onclick: () => void useAsRef(e) }, '参考に'),
+          h('button', { type: 'button', class: 'rb on', title: '♥ を外す（ライブラリからも消えます）', onclick: () => void unlike(e) }, '♥'),
+        ),
+      ),
+      h('span', { class: 'lbl', style: 'font-size:9px' }, `${e.projectTitle} · ${when}`),
+      e.note ? h('p', { class: 'cmotion jp2' }, e.note) : null,
+    );
   }
 
   function card(it: Item, stage: 'look' | 'motion') {
@@ -641,11 +693,23 @@ export function mountStudio(host: StudioHost) {
     host.setBackground(p && kv?.file ? fileUrl(p.id, kv.file) : p && lastGood?.file ? fileUrl(p.id, lastGood.file) : null);
 
     // center
-    viewBtns.look.classList.toggle('on', view === 'look');
-    viewBtns.motion.classList.toggle('on', view === 'motion');
+    viewBtns.look.classList.toggle('on', !likesOpen && view === 'look');
+    viewBtns.motion.classList.toggle('on', !likesOpen && view === 'motion');
+    viewBtns.likes.classList.toggle('on', likesOpen);
     viewBtns.motion.disabled = !p?.keyVisual;
     const rs = roundsOf(view);
     const cur = currentRound();
+    if (likesOpen) {
+      roundsNav.replaceChildren(
+        h('span', { class: 'mono', style: 'font-size:10px;color:#a3a8a2;align-self:center' }, `${likes.length} 枚`),
+        h('button', { type: 'button', class: 'rnd', title: likesDir, onclick: () => void postJson(`${API}/likes/reveal`, {}) }, 'Finder で開く'),
+      );
+      notesEl.replaceChildren(h('div', { class: 'mono thinking', style: 'color:#a3a8a2' }, `♥ を付けた画像はここに保存されます（プロンプトとひとこと付き）：${likesDir}`));
+      grid.className = 'gallery look';
+      grid.replaceChildren(...likes.map(likeCard));
+      empty.textContent = 'まだ ♥ はありません。キービジュアルや動きの案に ♥ を付けると、ここに集まります。';
+      empty.hidden = likes.length > 0;
+    } else {
     roundsNav.replaceChildren(
       ...rs.map((r, i) => h('button', { type: 'button', class: `rnd${cur === r ? ' on' : ''}`, onclick: () => { roundIx = i; render(); } }, `R${r.n}`)),
     );
@@ -669,6 +733,7 @@ export function mountStudio(host: StudioHost) {
           : 'キービジュアルが決まりました。右で動きの案（約10）を画像にします。'
         : '';
     empty.hidden = !!cur?.items.length;
+    }
 
     // right
     tabBtns.make.classList.toggle('on', tab === 'make');
