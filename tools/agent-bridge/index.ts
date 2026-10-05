@@ -76,8 +76,8 @@ function prompt(job: Job, framePath: string | null, root: string): string {
   const notes = job.workId
     ? readIf(join(root, 'works', job.workId, 'NOTES.md')) ?? readIf(join(root, 'works', job.workId, 'README.md'))
     : null;
-  // WebGPU worlds (three/webgpu + TSL) and WebGL works (GLSL) need different plumbing advice.
-  const gpu = job.workId ? /defineGpuInstrument/.test(readIf(join(root, 'works', job.workId, 'index.ts')) ?? '') : false;
+  // WebGPU worlds (three/webgpu + TSL) and WebGL works (GLSL) need different plumbing advice. New works are WebGPU.
+  const gpu = job.mode === 'create' || !job.workId || /defineGpuInstrument/.test(readIf(join(root, 'works', job.workId, 'index.ts')) ?? '');
   return [
     'You are an artist-engineer inside SHIKI, a real-time audio-reactive visual instrument for VJ performance.',
     'The human only gives briefs and feedback; you make the work.',
@@ -88,10 +88,10 @@ function prompt(job: Job, framePath: string | null, root: string): string {
     job.kind === 'build'
       ? `Task: create the instrument in works/${job.workId}/. The folder already contains approved images. Use exactly ${job.workId} as folder and manifest.id; keep the images. Include NOTES.md with concept, choreography and macros.`
       : job.mode === 'create'
-      ? 'Task: create a new work from the brief below. Choose a short lowercase id (a-z, 0-9, -) and create works/<id>/ following the instrument contract (index.ts + shaders); manifest.id must equal the folder name. Include works/<id>/NOTES.md with the concept, the choreography (kick, anticipation, tension, drop) and the macros.'
+      ? 'Task: create a new work from the brief below. Choose a short lowercase id (a-z, 0-9, -) and create works/<id>/ as a WebGPU world: copy works/_starter/index.ts to works/<id>/index.ts as the plumbing, set manifest.id to the folder name, then replace its placeholder world (without a key visual, remove the image import and keyImage of the starter). Include works/<id>/NOTES.md with the concept, the choreography (kick, anticipation, tension, drop) and the macros.'
       : `Task: change ${target} according to the feedback below.`,
     job.mode === 'create' && job.keyVisual
-      ? 'Image first: before writing code, generate one key visual (16:9) for the concept with your image generation tool, copy it to works/<id>/keyvisual.png, describe what makes it strong (composition, light, palette, texture) in NOTES.md, then build the instrument so a still frame reads like that image and its motion follows the choreography.'
+      ? 'Image first: before writing code, generate one key visual (16:9) for the concept with your image generation tool, copy it to works/<id>/keyvisual.png (import that file instead of the starter\'s keyvisual.jpg), describe what makes it strong (composition, light, palette, texture) in NOTES.md, then build the instrument so a still frame reads like that image and its motion follows the choreography.'
       : '',
     `Edit only files inside ${job.kind === 'build' ? `works/${job.workId}/` : job.mode === 'create' ? 'the new work folder' : target}. If the feedback states a general preference (not specific to this work), append one dated bullet to docs/taste.md.`,
     "Update the work's NOTES.md: what the user asked, what you changed, what to avoid next time.",

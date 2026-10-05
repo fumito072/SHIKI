@@ -28,6 +28,8 @@ type Screen = 'perform' | 'studio';
 
 // ---------- state ----------
 let list: InstrumentModule[] = [];
+/** The last registry load (both engines' works), to tell "built for the other engine" from "missing". */
+let lastLoad: LoadResult | null = null;
 let art: Record<string, string> = {};
 const clock = new Clock();
 const audio = new AudioEngine();
@@ -204,6 +206,11 @@ async function verifyWork(id: string): Promise<string | null> {
   for (let i = 0; i < 16 && !find(id); i++) await sleep(500);
   const w = find(id);
   if (!w) {
+    const other = engineMode === 'gpu' ? lastLoad?.works : (lastLoad?.gpuWorks as unknown as InstrumentModule[] | undefined);
+    if (other?.some((x) => x.manifest.id === id))
+      return engineMode === 'gpu'
+        ? `works/${id} は WebGL 用（defineInstrument + GLSL）で作られていますが、プラットフォームは WebGPU で動いています。AGENTS.md の "WebGPU worlds" に従い、works/_starter/index.ts を雛形に defineGpuInstrument で作り直してください。`
+        : `works/${id} は WebGPU 用です。ヘッダーで WebGPU に切り替えると読み込めます。`;
     const e = lastError.get(id);
     return e && e.at >= since - 120_000 ? e.msg : `works/${id} が作品一覧に現れません（manifest.id とフォルダ名が一致していない可能性）`;
   }
@@ -391,6 +398,7 @@ function toggleFollow() {
 
 // ---------- works ----------
 function applyWorks(res: LoadResult) {
+  lastLoad = res;
   list = worksOf(res);
   art = res.art;
   broken.clear();
@@ -587,6 +595,7 @@ for (const e of initial.errors) {
   broken.add(e.id);
   pushError(e.id, `読み込めません（ほかの作品は動き続けます）\n${e.error}`);
 }
+lastLoad = initial;
 list = worksOf(initial);
 art = initial.art;
 const first = (engineMode === 'gpu' ? find('alien-signal') : find('moonsea')) ?? list[0];

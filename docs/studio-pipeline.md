@@ -53,8 +53,14 @@ Claude の軽量フラグ、`ECC_HOOK_PROFILE=minimal` とサブスク用の環�
   生成待ち上限15分、ログは `.agents/lora.log`。秘密ファイルは読み取らない。
 
 ビルドはキービジュアルと1枚以上のstudyが必須。既存のcreate実行経路へ、固定idと承認済み画像を渡す。
+作品は WebGPU の world（three/webgpu + TSL、AGENTS.md の "WebGPU worlds"）として作る。
+`works/<id>/index.ts` がなければ `works/_starter/index.ts`（信号 → Director → カメラ → makePost の雛形）を
+id を差し替えてコピーし、エージェントは雛形の仮の世界を本物に置き換える。既存の index.ts が WebGL（GLSL）なら
+雛形を元に WebGPU で書き直すよう指示する。プロジェクトの Meshy モデル（アニメ付き > リグ > 静的）は
+`works/<id>/models/` にコピーし、プロンプトで知らせる。画像は `keyImage` / `coverUv`（src/engine/gpu/image.ts）で素材にする。
 成功した done の `createdWorkId` は必ずプロジェクトid。失敗・中止は `motion` に戻す。
-シェーダーの実コンパイルは従来通りUIのプレビューで検証する。
+実コンパイルは従来通りUIのプレビューで検証する。WebGL 用に作られた作品を WebGPU モードで検証した場合は、
+WebGPU で作り直すよう自動修復に伝える。
 
 UIは既存の `/__shiki/agent/events?job=`（SSE）、`cancel?job=`（POST）、`jobs` を使う。
 `item` イベントの text は更新されたItemのJSON。queued → running → done/error をidで上書きする。

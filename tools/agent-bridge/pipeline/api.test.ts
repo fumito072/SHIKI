@@ -17,7 +17,7 @@ const fake = vi.hoisted(() => ({ spawn: vi.fn() }));
 vi.mock('node:child_process', async importOriginal => ({ ...await importOriginal<typeof import('node:child_process')>(), spawn: fake.spawn }));
 const png = Buffer.from('89504e470d0a1a0a', 'hex');
 interface Call { command: string; args: string[]; text: string; env: NodeJS.ProcessEnv; proc: EventEmitter & { kill: () => boolean }; complete: () => void }
-let root: string, calls: Call[], holdImages: boolean, imageFallback: boolean, skipImage: boolean;
+let root: string, calls: Call[], holdImages: boolean, imageFallback: boolean, skipImage: boolean, starterSeen: string;
 
 function harness() {
   const handlers: { prefix: string; handler: Connect.NextHandleFunction }[] = [];
@@ -48,9 +48,11 @@ function harness() {
 }
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), 'shiki-api-')); calls = []; holdImages = false; imageFallback = false; skipImage = false;
+  root = mkdtempSync(join(tmpdir(), 'shiki-api-')); calls = []; holdImages = false; imageFallback = false; skipImage = false; starterSeen = "";
   mkdirSync(join(root, 'docs')); mkdirSync(join(root, 'works'));
   for (const doc of ['philosophy', 'taste', 'pinterest-aesthetic']) writeFileSync(join(root, 'docs', `${doc}.md`), doc);
+  mkdirSync(join(root, 'works/_starter'));
+  writeFileSync(join(root, 'works/_starter/index.ts'), "const manifest = { id: 'starter', // replaced\n}; defineGpuInstrument;");
   fake.spawn.mockImplementation((command: string, args: string[], options: { env: NodeJS.ProcessEnv }) => {
     const proc = new EventEmitter() as Call['proc'] & { stdin: PassThrough; stdout: PassThrough; stderr: PassThrough };
     proc.stdin = new PassThrough(); proc.stdout = new PassThrough(); proc.stderr = new PassThrough();
@@ -74,7 +76,10 @@ beforeEach(() => {
         proc.stdout.write(JSON.stringify(command === 'claude' ? { type: 'result', result: text } : { type: 'item.completed', item: { type: 'agent_message', text } }) + '\n');
       } else {
         const id = /Use exactly ([a-z0-9-]+) as folder/.exec(call.text)?.[1];
-        if (id) writeFileSync(join(root, 'works', id, 'index.ts'), 'export default {};');
+        if (id) {
+          starterSeen = readFileSync(join(root, 'works', id, 'index.ts'), 'utf8');
+          writeFileSync(join(root, 'works', id, 'index.ts'), 'export default {};');
+        }
         const feedback = /Task: change the work in works\/([a-z0-9-]+)\//.exec(call.text)?.[1];
         if (feedback) writeFileSync(join(root, 'works', feedback, 'index.ts'), 'changed');
         proc.stdout.write(JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: '完成' } }));
@@ -119,6 +124,13 @@ describe('Studio and shared bridge lifecycle without generations', () => {
     const final = await h.request(`/__shiki/agent/events?job=${build.job}`);
     expect(final.text).toContain(`\\"createdWorkId\\":\\"${p.id}\\"`);
     expect(readFileSync(join(root, 'works', p.id, 'studies.md'), 'utf8')).toContain('tension');
+    // New works start from the WebGPU starter, with the work id filled in, and the agent is told to build a WebGPU world.
+    expect(starterSeen).toContain(`id: '${p.id}',`);
+    expect(starterSeen).not.toContain('// replaced');
+    const buildCall = calls.find(c => c.text.includes('Use exactly') && c.text.includes('as folder'))!;
+    expect(buildCall.text).toContain('Build a WebGPU world');
+    expect(buildCall.text).toContain('keep the plumbing');
+    expect(buildCall.text).not.toContain('#include <shiki_image>');
     const claude = calls[0];
     expect(claude.args).toContain('--strict-mcp-config'); expect(claude.env.ECC_HOOK_PROFILE).toBe('minimal');
     expect(claude.args.slice(claude.args.indexOf('--tools') + 1, claude.args.indexOf('--allowedTools'))).toEqual(['Read']);

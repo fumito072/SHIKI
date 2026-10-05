@@ -30,7 +30,9 @@ tools/codex-mcp/ MCP server that exposes the Codex harness to Claude Code
 
 ## Instrument contract (works)
 
-A work is a folder `works/<id>/` whose `index.ts` default-exports `defineInstrument({ manifest, create })`.
+A work is a folder `works/<id>/` whose `index.ts` default-exports `defineInstrument({ manifest, create })` (WebGL,
+GLSL — the works made so far) or `defineGpuInstrument({ manifest, create })` (WebGPU worlds — **all new works**, see
+"WebGPU worlds" below; start from `works/_starter/index.ts`). The manifest and the rules below apply to both.
 Folders starting with `_` are ignored by the registry.
 
 ```ts
@@ -93,7 +95,8 @@ Rules:
 
 The control and output windows run on WebGPU by default (header toggle `WebGPU / WebGL`, stored in localStorage
 `shiki.engine`); the library then lists only WebGPU worlds. GLSL works keep running under WebGL until they are ported.
-Reference world: `works/alien-signal` (rigged Meshy models, director, event lighting).
+Reference world: `works/alien-signal` (rigged Meshy models, director, event lighting). Plumbing for a new world:
+`works/_starter/index.ts` (the Studio build copies it; images via `keyImage` / `coverUv` in `src/engine/gpu/image.ts`).
 
 - `index.ts` default-exports `defineGpuInstrument({ manifest, create })` from `src/engine/gpu/types`. `create` may be
   async (load models there); `render(frame, target)` draws into a HalfFloat `RenderTarget` with depth, linear HDR as
