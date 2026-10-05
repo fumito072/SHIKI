@@ -3,6 +3,7 @@ import '../../design/tokens/immersive.css';
 import './app.css';
 import './studio.css';
 import { DeckEngine } from '../engine/DeckEngine';
+import { GpuDeckEngine } from '../engine/gpu/DeckEngine';
 import type { Deck, Rect } from '../engine/DeckEngine';
 import { Clock } from '../engine/Clock';
 import { AudioEngine } from '../audio/AudioEngine';
@@ -60,7 +61,15 @@ function rel(el: HTMLElement): Rect {
 
 /** The screens are built after the engine; until then the program simply fills the canvas. */
 let mounted = false;
-const engine = new DeckEngine({
+/** Rendering backend for this window (and the output window): WebGPU worlds, or the WebGL-era works until ported. */
+const engineMode: 'gpu' | 'gl' = (() => {
+  try {
+    return localStorage.getItem('shiki.engine') === 'gl' ? 'gl' : 'gpu';
+  } catch {
+    return 'gpu';
+  }
+})();
+const engineOpts: ConstructorParameters<typeof DeckEngine>[0] = {
   canvas: gl,
   maxPixelRatio: 1,
   layout: () => {
@@ -74,7 +83,17 @@ const engine = new DeckEngine({
     perform.renderLibrary();
     perform.renderMacros();
   },
-});
+};
+// Both engines expose the same API; the WebGPU one loads asynchronously (see loadOn) and takes WebGPU modules.
+const engine = (engineMode === 'gpu' ? await GpuDeckEngine.create(engineOpts as never) : new DeckEngine(engineOpts)) as unknown as DeckEngine;
+/** Fail-safe load on either engine (sync on WebGL, async on WebGPU). */
+async function loadOn(deck: Deck, w: InstrumentModule, keepKnobs: boolean): Promise<boolean> {
+  return await (engine.load(deck, w, { keepKnobs }) as boolean | Promise<boolean>);
+}
+async function setSafeOn(w: InstrumentModule): Promise<boolean> {
+  return await (engine.setSafe(w) as boolean | Promise<boolean>);
+}
+const worksOf = (res: LoadResult): InstrumentModule[] => (engineMode === 'gpu' ? (res.gpuWorks as unknown as InstrumentModule[]) : res.works);
 engine.setPreview('A', true);
 engine.setPreview('B', true);
 
@@ -112,8 +131,8 @@ function find(id: string | null): InstrumentModule | undefined {
   return id ? list.find((x) => x.manifest.id === id) : undefined;
 }
 
-function loadInto(deck: Deck, w: InstrumentModule, keepKnobs = false): boolean {
-  const ok = engine.load(deck, w, { keepKnobs });
+async function loadInto(deck: Deck, w: InstrumentModule, keepKnobs = false): Promise<boolean> {
+  const ok = await loadOn(deck, w, keepKnobs);
   if (ok) {
     perform.renderLibrary();
     perform.renderMacros();
@@ -191,7 +210,7 @@ async function verifyWork(id: string): Promise<string | null> {
   const before = Date.now();
   const home = DECKS.find((d) => engine.workId(d) === id);
   const deck = home ?? cueDeck();
-  if (loadInto(deck, w, home !== undefined)) {
+  if (await loadInto(deck, w, home !== undefined)) {
     if (!home) {
       if (screen === 'studio') engine.onAir = deck;
       setEditDeck(deck);
@@ -320,7 +339,19 @@ const header = h('header', { class: 'topi' },
       h('button', { type: 'button', class: 'btn', onclick: () => clock.downbeat() }, 'Downbeat'),
     ),
   ),
-  h('div', { class: 'st' }, h('span', { class: 'stack2', style: 'gap:2px;align-items:flex-end' }, outEl, fpsEl)),
+  h('div', { class: 'st' },
+    h('button', {
+      type: 'button', class: 'btn', title: 'WebGPU の世界と、移植前の WebGL の作品を切り替えます（再読み込み）',
+      onclick: () => {
+        try {
+          localStorage.setItem('shiki.engine', engineMode === 'gpu' ? 'gl' : 'gpu');
+        } catch {
+          /* storage unavailable */
+        }
+        location.reload();
+      },
+    }, engineMode === 'gpu' ? 'WebGPU' : 'WebGL'),
+    h('span', { class: 'stack2', style: 'gap:2px;align-items:flex-end' }, outEl, fpsEl)),
 );
 
 const app = h('div', { class: 'app imm' },
@@ -360,7 +391,7 @@ function toggleFollow() {
 
 // ---------- works ----------
 function applyWorks(res: LoadResult) {
-  list = res.works;
+  list = worksOf(res);
   art = res.art;
   broken.clear();
   for (const e of res.errors) {
@@ -369,10 +400,10 @@ function applyWorks(res: LoadResult) {
   }
   for (const deck of DECKS) {
     const w = find(engine.workId(deck));
-    if (w) engine.load(deck, w, { keepKnobs: true });
+    if (w) void loadOn(deck, w, true);
   }
   const safe = find(engine.workId('safe'));
-  if (safe) engine.setSafe(safe);
+  if (safe) void setSafeOn(safe);
   perform.renderLibrary();
   perform.renderMacros();
   studio.refresh();
@@ -415,7 +446,7 @@ window.addEventListener('keydown', (e) => {
     default:
       if (/^[1-9]$/.test(e.key)) {
         const w = list[Number(e.key) - 1];
-        if (w) loadInto(cueDeck(), w);
+        if (w) void loadInto(cueDeck(), w);
       }
   }
 });
@@ -539,10 +570,10 @@ if (import.meta.env.DEV) {
       /** Puts a work straight on air (automation). */
       select: (id: string) => {
         const w = find(id);
-        if (w && loadInto(engine.onAir, w)) setEditDeck(engine.onAir);
+        if (w) void loadInto(engine.onAir, w).then((ok) => ok && setEditDeck(engine.onAir));
         return engine.workId(engine.onAir);
       },
-      cue: (id: string) => { const w = find(id); if (w) loadInto(cueDeck(), w); return engine.workId(cueDeck()); },
+      cue: (id: string) => { const w = find(id); if (w) void loadInto(cueDeck(), w); return engine.workId(cueDeck()); },
       doTake,
       testTrack: useTestTrack,
       signals: () => latest,
@@ -556,15 +587,15 @@ for (const e of initial.errors) {
   broken.add(e.id);
   pushError(e.id, `読み込めません（ほかの作品は動き続けます）\n${e.error}`);
 }
-list = initial.works;
+list = worksOf(initial);
 art = initial.art;
-const first = find('moonsea') ?? list[0];
-const second = find('ink-tide') ?? list.find((w) => w !== first) ?? first;
+const first = (engineMode === 'gpu' ? find('alien-signal') : find('moonsea')) ?? list[0];
+const second = (engineMode === 'gpu' ? undefined : find('ink-tide')) ?? list.find((w) => w !== first) ?? first;
 if (first) {
-  engine.load('A', first);
-  engine.setSafe(first);
+  await loadOn('A', first, false);
+  await setSafeOn(first);
 }
-if (second) engine.load('B', second);
+if (second) await loadOn('B', second, false);
 perform.renderLibrary();
 perform.renderMacros();
 studio.refresh();

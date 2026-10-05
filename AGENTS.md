@@ -89,6 +89,30 @@ Rules:
   material — sample, displace, slice, re-order, decompose by luminance into layers or particles, feed it into feedback —
   so a still frame reads like the key visual and the motion is the studies'. Do not redraw it from scratch in noise.
 
+### WebGPU worlds (three/webgpu + TSL)
+
+The control and output windows run on WebGPU by default (header toggle `WebGPU / WebGL`, stored in localStorage
+`shiki.engine`); the library then lists only WebGPU worlds. GLSL works keep running under WebGL until they are ported.
+Reference world: `works/alien-signal` (rigged Meshy models, director, event lighting).
+
+- `index.ts` default-exports `defineGpuInstrument({ manifest, create })` from `src/engine/gpu/types`. `create` may be
+  async (load models there); `render(frame, target)` draws into a HalfFloat `RenderTarget` with depth, linear HDR as
+  above. Optional `resize(w, h)`, `debug()` (state for the lab trace) and a full `dispose()`.
+- Import from `three/webgpu`, `three/tsl` and `three/addons/...` only. WebGPURenderer cannot run GLSL `ShaderMaterial`;
+  write node materials (`MeshBasicNodeMaterial`, `SpriteNodeMaterial`, …) with TSL nodes (`colorNode`, `positionNode`).
+- Signals: `signalUniforms()` / `updateSignals(u, frame)` in `src/engine/gpu/signals.ts` give TSL uniforms for every
+  signal and macro. TSL `hash()` truncates its seed to an integer: offset random streams by large integers, not fractions.
+- Editing helpers: `src/engine/gpu/world/director.ts` (cuts on bars, held build shot, drop impact + flash + new look) and
+  `world/kit.ts` (`makePost` bloom/trails/flash/negative, `shake`, `dollyFov`, `ease`). Compute particles:
+  `instancedArray` + `Fn().compute(n)` + `renderer.compute`.
+- Assets: `import url from './models/x.glb?url'` + `GLTFLoader`; clone rigged models with `SkeletonUtils.clone`. Meshy
+  models arrive in `studio/<project>/models/` (see `docs/studio-pipeline.md`); copy the chosen one into the work folder.
+- Animation that should land on the music is driven by beats, not seconds
+  (`action.time = (beats % loopBeats) / loopBeats * clip.duration; mixer.update(0)`).
+- Try a world alone at `http://localhost:5173/lab.html?work=<id>` (T test track, hold B build, ⏎ drop);
+  `window.__lab.offline({ name, seconds })` renders a deterministic clip to `.agents/clips/`.
+- Budget: 60 fps at 1920×1080 with two decks, a safe deck and previews running in one window.
+
 ### Artistic intent (read docs/philosophy.md — it overrides polish)
 
 The user's aim: **maximize the gap between what the brain predicts and what the retina receives, so the brain glitches;

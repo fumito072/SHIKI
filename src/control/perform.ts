@@ -21,7 +21,7 @@ export interface PerformCtx {
   editDeck(): Deck;
   setEditDeck(d: Deck): void;
   cueDeck(): Deck;
-  loadInto(deck: Deck, w: InstrumentModule): boolean;
+  loadInto(deck: Deck, w: InstrumentModule): Promise<boolean>;
   take(opts?: Partial<TakeOpts>): void;
   takeOpts: TakeOpts;
   goSafe(): void;
@@ -166,8 +166,8 @@ export function mountPerform(ctx: PerformCtx) {
         const badge = h('span', { class: 'chip badge', hidden: true }, 'Next');
         const el = h('article', {
           class: 'lit', title: `${i + 1}: ${m.name} — クリックでキュー、ダブルクリックで即カット`,
-          onclick: () => ctx.loadInto(ctx.cueDeck(), w),
-          ondblclick: () => { if (ctx.loadInto(ctx.cueDeck(), w)) ctx.take({ transition: 'cut', quantize: 'now' }); },
+          onclick: () => void ctx.loadInto(ctx.cueDeck(), w),
+          ondblclick: () => void ctx.loadInto(ctx.cueDeck(), w).then((ok) => ok && ctx.take({ transition: 'cut', quantize: 'now' })),
         },
           h('div', { class: 'screen scan' }, img, h('span', { class: 'lk mono' }, String(i + 1))),
           badge,

@@ -1,25 +1,54 @@
 import { DeckEngine } from '../engine/DeckEngine';
+import { GpuDeckEngine } from '../engine/gpu/DeckEngine';
 import { openBridge } from '../bridge';
 import { loadWorks, onWorksChanged } from '../works/registry';
 import { SILENT } from '../engine/types';
 import type { InstrumentModule, LiveSignals } from '../engine/types';
+import type { LoadResult } from '../works/registry';
 
 const canvas = document.getElementById('out') as HTMLCanvasElement;
 const hint = document.getElementById('hint') as HTMLDivElement;
 
-let list: InstrumentModule[] = (await loadWorks()).works;
+// Same backend as the control window (its header toggle writes this key; we reload when it changes).
+const engineMode: 'gpu' | 'gl' = (() => {
+  try {
+    return localStorage.getItem('shiki.engine') === 'gl' ? 'gl' : 'gpu';
+  } catch {
+    return 'gpu';
+  }
+})();
+window.addEventListener('storage', (e) => {
+  if (e.key === 'shiki.engine') location.reload();
+});
+const worksOf = (res: Pick<LoadResult, 'works' | 'gpuWorks'>): InstrumentModule[] =>
+  engineMode === 'gpu' ? (res.gpuWorks as unknown as InstrumentModule[]) : res.works;
+
+let list: InstrumentModule[] = worksOf(await loadWorks());
 let latest: LiveSignals = { ...SILENT };
 let lastState = 0;
 
 // Mirrors the control window: same works per deck, same knobs, same take schedule, FX and panic state.
-const engine = new DeckEngine({
+const opts: ConstructorParameters<typeof DeckEngine>[0] = {
   canvas,
   maxPixelRatio: 2,
   onError: (msg, id, deck) => console.warn(`[shiki] ${deck} ${id}: ${msg}`),
-});
+};
+const engine = (engineMode === 'gpu' ? await GpuDeckEngine.create(opts as never) : new DeckEngine(opts)) as unknown as DeckEngine;
 engine.signals = () => latest;
 
 const find = (id: string | null) => (id ? list.find((x) => x.manifest.id === id) : undefined);
+
+// WebGPU loads are asynchronous: remember what is on its way so state messages do not restart it every frame.
+const inflight: Record<'A' | 'B' | 'safe', string | null> = { A: null, B: null, safe: null };
+function follow(deck: 'A' | 'B' | 'safe', w: InstrumentModule, keepKnobs = true) {
+  if (inflight[deck] === w.manifest.id) return;
+  inflight[deck] = w.manifest.id;
+  const done = () => {
+    if (inflight[deck] === w.manifest.id) inflight[deck] = null;
+  };
+  const r = (deck === 'safe' ? engine.setSafe(w) : engine.load(deck, w, { keepKnobs })) as boolean | Promise<boolean>;
+  void Promise.resolve(r).then(done, done);
+}
 
 const bridge = openBridge((m) => {
   if (m.t !== 'state') return;
@@ -28,13 +57,13 @@ const bridge = openBridge((m) => {
     const want = m.decks[deck];
     if (want.workId && want.workId !== engine.workId(deck)) {
       const w = find(want.workId);
-      if (w) engine.load(deck, w, { keepKnobs: true });
+      if (w) follow(deck, w);
     }
     engine.knobs[deck].set(want.knobs.slice(0, engine.knobs[deck].length));
   }
   if (m.safeId && m.safeId !== engine.workId('safe')) {
     const w = find(m.safeId);
-    if (w) engine.setSafe(w);
+    if (w) follow('safe', w);
   }
   engine.applySync(m.sync);
   latest = m.signals;
@@ -42,14 +71,14 @@ const bridge = openBridge((m) => {
 });
 bridge.send({ t: 'hello' });
 
-onWorksChanged(({ works: fresh }) => {
-  list = fresh;
+onWorksChanged((res) => {
+  list = worksOf(res);
   for (const deck of ['A', 'B'] as const) {
     const w = find(engine.workId(deck));
-    if (w) engine.load(deck, w, { keepKnobs: true });
+    if (w) void engine.load(deck, w, { keepKnobs: true });
   }
   const safe = find(engine.workId('safe'));
-  if (safe) engine.setSafe(safe);
+  if (safe) void engine.setSafe(safe);
 });
 
 engine.start();

@@ -76,6 +76,8 @@ function prompt(job: Job, framePath: string | null, root: string): string {
   const notes = job.workId
     ? readIf(join(root, 'works', job.workId, 'NOTES.md')) ?? readIf(join(root, 'works', job.workId, 'README.md'))
     : null;
+  // WebGPU worlds (three/webgpu + TSL) and WebGL works (GLSL) need different plumbing advice.
+  const gpu = job.workId ? /defineGpuInstrument/.test(readIf(join(root, 'works', job.workId, 'index.ts')) ?? '') : false;
   return [
     'You are an artist-engineer inside SHIKI, a real-time audio-reactive visual instrument for VJ performance.',
     'The human only gives briefs and feedback; you make the work.',
@@ -94,7 +96,9 @@ function prompt(job: Job, framePath: string | null, root: string): string {
     `Edit only files inside ${job.kind === 'build' ? `works/${job.workId}/` : job.mode === 'create' ? 'the new work folder' : target}. If the feedback states a general preference (not specific to this work), append one dated bullet to docs/taste.md.`,
     "Update the work's NOTES.md: what the user asked, what you changed, what to avoid next time.",
     'Never just vibrate with the audio: drive choreography (tension → release, inertia, anticipation, boundary breaks).',
-    'GLSL is compiled at runtime, not by tsc: copy the plumbing of works/moonsea (fullscreen fragment shaders declare `varying vec2 vUv;` themselves). After you finish, the platform compiles the work in the live preview and sends any error back to you.',
+    gpu
+      ? 'This is a WebGPU world (see "WebGPU worlds" in AGENTS.md): three/webgpu + TSL node materials only, no GLSL or ShaderMaterial; keep its Director, light events and models. Shader nodes compile at runtime: after you finish, the platform loads the work in the live preview and sends any error back to you.'
+      : 'GLSL is compiled at runtime, not by tsc: copy the plumbing of works/moonsea (fullscreen fragment shaders declare `varying vec2 vUv;` themselves). After you finish, the platform compiles the work in the live preview and sends any error back to you.',
     'Before finishing run `npx tsc --noEmit` and fix errors in your files. Do not commit, do not start servers.',
     'Shell commands you may run: npx tsc --noEmit, npm run typecheck, npx vitest run <path>, npm test, ls. Anything else is refused — use Read / Glob / Grep instead. Nobody approves anything during the run.',
     framePath
