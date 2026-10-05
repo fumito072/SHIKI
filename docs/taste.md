@@ -14,6 +14,12 @@ general preference (not one specific to a single work). Keep bullets short and c
   *The Moon Is a Harsh Mistress*). Stillness and composition matter as much as motion.
 - 2026-10-03 · Ink should behave like a liquid: slimy, stretching, folding into curves.
 - 2026-10-03 · Cyber/digital texture blended with natural phenomena (UI direction, also a hint for works).
+- 2026-10-05 · ALIEN SIGNAL v2 「めっちゃいい」: a crowd of our own mesh aliens, drawn as a wireframe over a dark body,
+  dancing locked to the beat; light as an event (random patches on kicks, scan bands, a flood on the drop), never a
+  constant glow; a director cutting between the group, skulls, hands and low angles. A single acid-green accent on
+  black works here: the "no neon" rule means no neon *cityscape / cyberpunk cliché*, not no saturated light.
+- 2026-10-05 · Dynamic, edited VJ experiences (Alien Dance, AVB2BVA, Lucas Gutierrez) over a still image with a little
+  motion; the image is only one part of the experience.
 
 ## Dislikes
 
@@ -21,3 +27,5 @@ general preference (not one specific to a single work). Keep bullets short and c
   tension → release, inertia, broken expectations), not a level meter.
 - 2026-10-03 · Elements whose purpose cannot be read (MOONSEA v1's particle line: "what is it trying to do?").
 - 2026-10-03 · Prompt-only, "AI-looking", tacky imagery.
+- 2026-10-05 · Cheap particles: identical round glowing sprites stacked additively under heavy bloom (screensaver
+  look). Soft "jellyfish" creatures. Glow that stays on all the time.

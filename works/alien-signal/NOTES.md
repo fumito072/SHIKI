@@ -9,6 +9,9 @@
   - 「シンプルにさっきのyoutubeにいたメッシュエイリアンはかなりいけていたからそんなイメージでもう一度作ってほしい」
     (reference: "Alien Dance VJ Loop 4K" — neon wireframe humanoid aliens dancing in a group, motion locked to BPM)
   - Diagnosis of the cheap particles: identical round glowing sprites, additive stacking, heavy bloom (screensaver look).
+- 2026-10-05 · v2 (mesh aliens, event lighting, director): 「このエイリアン作品めっちゃいいから作品の一つに保存しておいて」 —
+  kept as a work and playable on the platform (WebGPU). Keep: the wireframe-over-dark-body look, random per-hit light,
+  beat-locked dance, the cutting. Known nits to revisit: the tracking-shot framing, the hand shot showing legs.
 
 ## v2 direction
 

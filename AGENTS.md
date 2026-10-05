@@ -129,7 +129,7 @@ destroy the boundary lines of our world.** Consequences for every work:
 
 ### Taste rules (do not break)
 
-- No rainbow gradients, no neon cyberpunk, no generic galaxies, no lens-flare spam.
+- No rainbow gradients, no neon cyberpunk clichés, no generic galaxies, no lens-flare spam (a single saturated accent used as an event, as in `works/alien-signal`, is fine).
 - Avoid centred, symmetric compositions; keep generous negative space.
 - Motion is slow and organic by default; react to the music with restraint (attack/release, not jitter).
 - Limited palettes (2–3 hues + neutrals). Fine grain, depth, haze over flat fills.
