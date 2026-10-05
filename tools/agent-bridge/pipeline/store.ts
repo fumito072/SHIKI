@@ -52,7 +52,9 @@ export class Store {
   get(id: unknown): Project {
     const path = this.file(id, 'project.json');
     if (!existsSync(path)) throw new InputError('Unknown project', 404);
-    return JSON.parse(readFileSync(path, 'utf8')) as Project;
+    const project = JSON.parse(readFileSync(path, 'utf8')) as Project;
+    project.models ??= [];
+    return project;
   }
   save(project: Project) {
     project.updated = Date.now();
@@ -81,7 +83,7 @@ export class Store {
     let id = stem, n = 2;
     while (existsSync(this.dir(id)) || existsSync(join(this.root, 'works', id))) { const suffix = `-${n++}`; id = `${stem.slice(0, 41 - suffix.length)}${suffix}`; }
     const now = Date.now();
-    const p: Project = { id, title: t, brief: b, refs: [], stage: 'look', rounds: [], keyVisual: null, studies: [], workId: null, created: now, updated: now };
+    const p: Project = { id, title: t, brief: b, refs: [], stage: 'look', rounds: [], keyVisual: null, studies: [], workId: null, models: [], created: now, updated: now };
     this.writeRefs(p, images);
     return this.save(p);
   }
@@ -161,5 +163,11 @@ export class Store {
     if (!type) throw new InputError('Image files only');
     if (!existsSync(file) || !lstatSync(file).isFile()) throw new InputError('Image not found', 404);
     return { file, type };
+  }
+  asset(id: unknown, path: unknown) {
+    if (typeof path !== 'string' || extname(path).toLowerCase() !== '.glb') return this.image(id, path);
+    const file = this.file(id, path);
+    if (!existsSync(file) || !lstatSync(file).isFile()) throw new InputError('Model not found', 404);
+    return { file, type: 'model/gltf-binary' };
   }
 }

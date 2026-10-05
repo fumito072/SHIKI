@@ -13,6 +13,7 @@ import { runRound } from './round';
 import { buildInputs, prepareBuild } from './build';
 import { Likes } from './likes';
 import { execFile } from 'node:child_process';
+import { MeshyClient, modelRequest } from './meshy';
 
 async function body(req: IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
@@ -34,7 +35,7 @@ function send(res: ServerResponse, status: number, value: unknown) {
 
 export function installPipeline(middleware: Connect.Server, root: string, jobs: Map<string, Job>, emit: Emit,
   launchWork: (job: Job, images: string[]) => Promise<string>, snapshot: (work: string, note: Record<string, unknown>) => string) {
-  const store = new Store(root), lora = new LoraClient(root);
+  const store = new Store(root), lora = new LoraClient(root), meshy = new MeshyClient(root);
   const likes = new Likes(store);
   try {
     store.recover();
@@ -46,7 +47,7 @@ export function installPipeline(middleware: Connect.Server, root: string, jobs: 
     const busy = [...jobs.values()].find(j => (j.state === 'running' || (j.state === 'cancelled' && !j.finished)) && (j.projectId === id || j.workId === id));
     if (busy) throw new InputError(`Project is busy (job ${busy.id})`, 409);
   };
-  const newJob = (id: string, director: Director, kind: 'round' | 'build') => {
+  const newJob = (id: string, director: Director, kind: 'round' | 'build' | 'meshy') => {
     const job: Job = { id: `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}-${director.agent}`, ...director,
       mode: 'create', kind, projectId: id, workId: id, message: '', keyVisual: false, attempt: 0,
       state: 'running', events: [], listeners: new Set(), procs: new Set(), abort: new AbortController(), started: Date.now() };
@@ -54,7 +55,7 @@ export function installPipeline(middleware: Connect.Server, root: string, jobs: 
   };
   middleware.use('/__shiki/studio', (req, res, next) => {
     const url = new URL(req.url ?? '/', 'http://local'), path = url.pathname.replace(/^\//, '');
-    const methods: Record<string, string> = { projects: 'GET|POST', project: 'GET', 'project/update': 'POST', 'project/refs': 'POST', 'project/refs/remove': 'POST', 'project/round': 'POST', 'project/rate': 'POST', 'project/choose': 'POST', 'project/build': 'POST', file: 'GET', 'lora/status': 'GET', 'lora/start': 'POST', likes: 'GET', 'likes/file': 'GET', 'likes/reveal': 'POST' };
+    const methods: Record<string, string> = { projects: 'GET|POST', project: 'GET', 'project/update': 'POST', 'project/refs': 'POST', 'project/refs/remove': 'POST', 'project/round': 'POST', 'project/rate': 'POST', 'project/choose': 'POST', 'project/build': 'POST', file: 'GET', 'lora/status': 'GET', 'lora/start': 'POST', likes: 'GET', 'likes/file': 'GET', 'likes/reveal': 'POST', 'meshy/status': 'GET', 'meshy/library': 'GET', 'meshy/model': 'POST' };
     if (!methods[path]) return next();
     void (async () => {
       if (!methods[path].split('|').includes(req.method ?? '')) return send(res, 405, { error: `${methods[path]} only` });
@@ -62,7 +63,7 @@ export function installPipeline(middleware: Connect.Server, root: string, jobs: 
       if (path === 'project') return send(res, 200, store.get(url.searchParams.get('id')));
       if (path === 'file') {
         store.get(url.searchParams.get('id'));
-        const { file, type } = store.image(url.searchParams.get('id'), url.searchParams.get('path'));
+        const { file, type } = store.asset(url.searchParams.get('id'), url.searchParams.get('path'));
         const stat = statSync(file), etag = `"${stat.size}-${stat.mtimeMs}"`;
         res.setHeader('content-type', type);
         res.setHeader('cache-control', 'private, max-age=0, must-revalidate');
@@ -95,6 +96,8 @@ export function installPipeline(middleware: Connect.Server, root: string, jobs: 
       }
       if (path === 'lora/status') return send(res, 200, await lora.status());
       if (path === 'lora/start') { await lora.start(); return send(res, 200, await lora.status()); }
+      if (path === 'meshy/status') return send(res, 200, meshy.status());
+      if (path === 'meshy/library') return send(res, 200, await meshy.library(url.searchParams.get('category') ?? '', url.searchParams.get('search') ?? ''));
       const b = await body(req);
       if (path === 'projects') return send(res, 200, store.create(b.title, b.brief, b.refs, b.slug));
       const project = store.get(b.id);
@@ -105,6 +108,17 @@ export function installPipeline(middleware: Connect.Server, root: string, jobs: 
         return send(res, 200, saved);
       }
       idle(project.id);
+      if (path === 'meshy/model') {
+        meshy.requireKey();
+        const request = modelRequest(store, project, b);
+        const job = newJob(project.id, { agent: 'codex', model: 'meshy', effort: '' }, 'meshy');
+        const meshyEmit: Emit = (job, event) => emit(job, job.state === 'cancelled' && event.type === 'done'
+          ? { ...event, text: 'Meshy を中止しました。リモートのタスクは実行を続けます。' } : event);
+        void meshy.run(store, project, request, job, meshyEmit).then(
+          summary => finishJob(job, meshyEmit, undefined, summary), error => finishJob(job, meshyEmit, error),
+        );
+        return send(res, 200, { job: job.id });
+      }
       if (path === 'project/refs') return send(res, 200, store.addRefs(project.id, b.refs));
       if (path === 'project/refs/remove') return send(res, 200, store.removeRef(project.id, b.path));
       if (path === 'project/choose') return send(res, 200, store.choose(project.id, b.keyVisual, b.studies));

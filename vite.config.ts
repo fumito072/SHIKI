@@ -97,7 +97,7 @@ export default defineConfig({
   server: { port: 5173, strictPort: true, hmr: { overlay: false } },
   build: {
     target: 'es2022',
-    rollupOptions: { input: { control: path('./index.html'), output: path('./output.html') } },
+    rollupOptions: { input: { control: path('./index.html'), output: path('./output.html'), lab: path('./lab.html') } },
   },
   test: { include: ['src/**/*.test.ts', 'works/**/*.test.ts', 'tools/**/*.test.ts'] },
 });

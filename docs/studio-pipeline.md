@@ -72,3 +72,23 @@ UIは既存の `/__shiki/agent/events?job=`（SSE）、`cancel?job=`（POST）�
 ♥ を外すと消す。起動時に全制作と突き合わせて揃える（以前の ♥ も保存される）。保存先は `SHIKI_LIBRARY_DIR` で変更可。
 API：`GET likes`（`{dir, items}`）、`GET likes/file?path=<project>/<item>.png`、`POST likes/reveal`（Finder で開く）。
 
+## Meshy：デザイン画像から3D
+
+`GET meshy/status` は `{configured}`、`GET meshy/library?category=&search=` は無料のモーション一覧
+（1時間キャッシュ）。`POST meshy/model` は `{id,item,rig?,actions?,polycount?,pose?,pbr?}` を受け、
+既存のジョブ／SSEで `{job}` を返す。APIキーは環境変数またはリポジトリの `.env` の `MESHY_API_KEY`。
+未設定時は「Meshy の API キーが .env にありません」。キーと署名付きアセットURLはログ・イベント・JSONへ保存しない。
+
+完成済みのPNG候補を送り、約5秒ごとに進捗を通知する。テクスチャ付きGLBを
+`models/<item>.glb`、サムネイルと追加アセットも即座にダウンロードする（リモートの保存期限は約3日）。
+`rig:true` は人型向けの任意処理で `models/<item>-rigged.glb`、`actions` は `rig:true` が必要で
+1〜10個の重複しないaction idから `models/<item>-anim.glb` を作る。複数モーションの追加GLBも保存する。
+非人型はリグを省略し、エンジン側で動かす。polycountは100〜300000、poseは空文字／a-pose／t-pose、
+pbrはboolean。リグ約5 credits、アニメーションは1 actionあたり3 credits、画像→3Dは設定・モデルに依存。
+成功時のsummaryにAPIが返した `consumed_credits` の合計を含める。
+
+`project.json` の `models` に `{id,item,file,thumb?,rigged?,anim?,actions?,tasks:{image,rig?,anim?},credits,createdAt}`
+を保存する（file類はプロジェクト内の相対パス）。同じ候補の再生成はその候補の記録を置き換える。
+各段階で保存し、後続の失敗でも完成済みモデルを残す。旧プロジェクトのmodelsは空配列として読める。
+既存の `GET file?id=&path=` で画像とGLB（`model/gltf-binary`）を配信する。
+プロジェクトごとに1ジョブ。キャンセルは通信・ポーリングを止めるが、Meshy側のタスクは継続することを通知する。

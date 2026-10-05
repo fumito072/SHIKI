@@ -29,7 +29,7 @@ export interface Job {
   procs: Set<ChildProcess>;
   abort: AbortController;
   projectId?: string;
-  kind?: 'round' | 'build';
+  kind?: 'round' | 'build' | 'meshy';
   started: number;
   finished?: number;
 }
@@ -49,4 +49,10 @@ export interface Round {
 export interface Project {
   id: string; title: string; brief: string; refs: string[]; stage: Stage; rounds: Round[];
   keyVisual: string | null; studies: string[]; workId: string | null; created: number; updated: number;
+  models?: StudioModel[];
+}
+
+export interface StudioModel {
+  id: string; item: string; file: string; thumb?: string; rigged?: string; anim?: string; actions?: number[];
+  tasks: { image: string; rig?: string; anim?: string }; credits: number; createdAt: number;
 }
