@@ -19,10 +19,24 @@ sound throws around.
 - Drop: an explosion from above the disc, then light on black for two bars, then a ring.
 - Shots: horizon, low under the spears, top-down, impact pull-back, build push, orbit. A cut starts a fresh exposure.
 
+## Alien and fractal (v2)
+
+- The alien is ALIEN SIGNAL's Meshy model (imported from works/alien-signal/models), skinned on the GPU every frame with
+  `computeSkinning` (use its return value; the output-node form leaves the buffer empty) and `skeleton.update()` called
+  by hand (the mesh is never drawn). About half the particles (Alien knob) cling to random vertices with a spring that
+  also matches the vertex velocity, so the strands dance with it; kicks shed some, the drop releases all, calm lets it
+  dissolve; it re-forms as the strands fly back. Dance: beat-locked clips (grooves, slow in a build, wild after a drop).
+- Fractal spears: rising free strands that cross 0.7 / 1.45 / 2.2 split in two each time (2 → 4 → 8), per cluster.
+- Julia floor (form "julia", also in calm): strands near the floor follow the equipotentials of the Julia set of
+  c = 0.7885·e^{iθ}, θ walking with the mids; best seen from the top-down shot.
+
 ## Feedback log
 
 - 2026-10-08 · MIZUKAGAMI (liquid-chrome fractal) was "イメージが違うな". Wanted light running wild with the sound, simply;
   sent the sakrmusic recording as the image.
+
+- 2026-10-08 · 「今のやつにフラクタル的な要素とエイリアン的要素を混ぜ込むことはできる？」 → v2 adds the strand alien and
+  the fractal spears / Julia floor.
 
 ## Next
 
