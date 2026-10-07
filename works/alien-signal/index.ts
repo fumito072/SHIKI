@@ -156,7 +156,7 @@ export default defineGpuInstrument({
     let lastKickAge = 9;
     let lastOnset = 0;
     let dropAt = -99;
-    let lastFlash = false;
+    let lastDrops = 0;
     const tmp = new Vector3();
 
     function play(a: Alien, clip: AnimationClip) {
@@ -243,8 +243,8 @@ export default defineGpuInstrument({
         const dt = Math.min(1 / 30, Math.max(1 / 240, s.dt || 1 / 60));
 
         // Drop: flood, then the whole crowd snaps into the wildest dance together.
-        if (d.flash > 0.95 && !lastFlash) dropAt = s.time;
-        lastFlash = d.flash > 0.95;
+        if (d.drops !== lastDrops) dropAt = s.time;
+        lastDrops = d.drops;
         const since = s.time - dropAt;
         U.drop.value = since >= 0 ? Math.exp(-since / 0.9) : 0;
 

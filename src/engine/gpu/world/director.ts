@@ -32,10 +32,13 @@ export interface DirectorState {
   kickAge: number;
   /** Increments on every cut (lets a world re-seed per shot). */
   cut: number;
+  /** Increments once per drop. Compare with the last value seen to react to a drop at any frame rate (flash decays
+   * within the frame, so testing `flash > x` misses drops when frames are long, e.g. offline renders at 24 fps). */
+  drops: number;
 }
 
 export class Director {
-  private state: DirectorState = { phase: 'calm', shot: 0, style: 0, local: 0, flash: 0, kickAge: 99, cut: 0 };
+  private state: DirectorState = { phase: 'calm', shot: 0, style: 0, local: 0, flash: 0, kickAge: 99, cut: 0, drops: 0 };
   private shotStart = 0;
   private lastBar = -1;
   private lastDrop = 0;
@@ -84,6 +87,7 @@ export class Director {
       const style = allowed.length ? allowed[Math.floor(this.rnd() * allowed.length)] : st.style;
       this.cut(this.o.impactShot, beats, style);
       st.flash = 1;
+      st.drops++;
       this.impactUntil = beats + 8; // two bars of impact before normal editing resumes
       phase = 'impact';
     } else if (phase === 'build') {

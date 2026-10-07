@@ -50,6 +50,21 @@ describe('Director', () => {
     expect(hit?.style).not.toBe(before);
   });
 
+  it('counts each drop once, even at a low frame rate', () => {
+    const d = new Director(opts);
+    let t = 0;
+    const step = (sec: number, f: (t: number) => Partial<Signals>) => {
+      for (const end = t + sec; t < end; t += 1 / 24) {
+        const beats = (t * bpm) / 60;
+        d.update({ ...SILENT, time: t, dt: 1 / 24, frame: 0, bpm, beats, beat: beats % 1, bar: (beats / 4) % 1, ...f(t) });
+      }
+    };
+    step(4, () => ({ level: 0.7, low: 0.7, kick: 1 }));
+    expect(d.current.drops).toBe(0);
+    step(3, (t) => ({ level: 0.8, low: 0.8, kick: 1, drop: t > 5 ? Math.exp(-(t - 5) / 2.2) : 0 }));
+    expect(d.current.drops).toBe(1);
+  });
+
   it('is deterministic for a seed', () => {
     const a = run(new Director(opts), 0, 12, groove).map((r) => r.shot).join();
     const b = run(new Director(opts), 0, 12, groove).map((r) => r.shot).join();

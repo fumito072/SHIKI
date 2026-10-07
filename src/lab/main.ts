@@ -45,7 +45,14 @@ const finish = new QuadMesh(finishMat);
 const knobs = new Float32Array(MAX_MACROS);
 mod.manifest.macros.forEach((m, i) => (knobs[i] = m.default));
 const macros = new Float32Array(MAX_MACROS);
-const instrument: GpuInstrument = await mod.create({ renderer, manifest: mod.manifest, width: w, height: h });
+let instrument: GpuInstrument = await mod.create({ renderer, manifest: mod.manifest, width: w, height: h });
+
+/** A new instance of the world, so a scripted render starts from the same state every time (deterministic). */
+async function fresh() {
+  instrument.dispose();
+  instrument = await mod!.create({ renderer, manifest: mod!.manifest, width: w, height: h });
+  (window as unknown as { __lab: { instrument: GpuInstrument } }).__lab.instrument = instrument;
+}
 
 addEventListener('resize', () => {
   w = Math.round(innerWidth * dpr);
@@ -116,42 +123,58 @@ addEventListener('keyup', (e) => {
 
 // ---------- offline capture ----------
 const trace: Record<string, unknown>[] = [];
-/** Copies the canvas right after a render (same task) into a JPEG data URL. */
-function grab(quality = 0.88): string {
+/** Copies the canvas right after a render (same task) into a data URL (JPEG for clips, PNG for stills). */
+function grab(quality = 0.88, type = 'image/jpeg'): string {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
   c.getContext('2d')!.drawImage(canvas, 0, 0);
-  return c.toDataURL('image/jpeg', quality);
+  return c.toDataURL(type, quality);
+}
+
+/** Drawing size of the canvas, the HDR target and the world (the window keeps its CSS size). */
+function setRes(nw: number, nh: number) {
+  w = nw;
+  h = nh;
+  renderer.setSize(w, h, false);
+  hdr.setSize(w, h);
+  instrument.resize?.(w, h);
+}
+
+interface Script { buildAt?: number; dropAt?: number; bpm?: number }
+/** The scripted section used by offline renders: groove → build from `buildAt` → drop at `dropAt` → groove. */
+function scripted(i: number, rate: number, o: Script): Signals {
+  const { buildAt = 6, dropAt = 12, bpm = 128 } = o;
+  const beatS = 60 / bpm;
+  const t = i / rate;
+  const beats = t / beatS;
+  const building = t >= buildAt && t < dropAt;
+  const sinceBeat = (beats % 1) * beatS;
+  const kick = building ? 0 : Math.exp(-sinceBeat / 0.12);
+  return {
+    bpm, beats, beat: beats % 1, bar: (beats / 4) % 1,
+    low: building ? 0.25 : 0.55 + 0.35 * kick, mid: 0.45, high: building ? 0.3 + 0.6 * (t - buildAt) / (dropAt - buildAt) : 0.4,
+    level: building ? 0.45 : 0.72, onset: kick, kick,
+    tension: building ? Math.min(1, (t - buildAt) / (dropAt - buildAt)) : 0,
+    drop: t >= dropAt ? Math.exp(-(t - dropAt) / 2.2) : 0,
+    time: t, dt: 1 / rate, frame: i,
+  };
 }
 
 /**
  * Deterministic clip with scripted signals: groove → build from `buildAt` (tension rises, kick stops) → drop at
  * `dropAt` → groove. Frames to .agents/frames/<name>/, result .agents/clips/<name>.mp4 (+ contact sheet).
  */
-async function offline(o: { name?: string; seconds?: number; fps?: number; buildAt?: number; dropAt?: number; bpm?: number } = {}) {
-  const { name = 'lab', seconds = 20, fps: rate = 30, buildAt = 6, dropAt = 12, bpm = 128 } = o;
+async function offline(o: { name?: string; seconds?: number; fps?: number } & Script = {}) {
+  const { name = 'lab', seconds = 20, fps: rate = 30 } = o;
   running = false;
   trace.length = 0;
-  const beatS = 60 / bpm;
   try {
+    await fresh();
     const total = Math.round(seconds * rate);
     for (let i = 0; i < total; i++) {
-      const t = i / rate;
-      const beats = t / beatS;
-      const building = t >= buildAt && t < dropAt;
-      const sinceBeat = (beats % 1) * beatS;
-      const kick = building ? 0 : Math.exp(-sinceBeat / 0.12);
-      const sig: Signals = {
-        bpm, beats, beat: beats % 1, bar: (beats / 4) % 1,
-        low: building ? 0.25 : 0.55 + 0.35 * kick, mid: 0.45, high: building ? 0.3 + 0.6 * (t - buildAt) / (dropAt - buildAt) : 0.4,
-        level: building ? 0.45 : 0.72, onset: kick, kick,
-        tension: building ? Math.min(1, (t - buildAt) / (dropAt - buildAt)) : 0,
-        drop: t >= dropAt ? Math.exp(-(t - dropAt) / 2.2) : 0,
-        time: t, dt: 1 / rate, frame: i,
-      };
-      draw(sig);
-      trace.push({ t: Math.round(t * 100) / 100, ...instrument.debug?.() });
+      draw(scripted(i, rate, o));
+      trace.push({ t: Math.round((i / rate) * 100) / 100, ...instrument.debug?.() });
       await fetch(`/__shiki/frame?name=${encodeURIComponent(name)}&i=${i}`, { method: 'POST', body: grab() });
     }
   } finally {
@@ -162,4 +185,31 @@ async function offline(o: { name?: string; seconds?: number; fps?: number; build
   return (await r.json()) as { mp4: string; sheet: string };
 }
 
-Object.assign(window, { __lab: { renderer, instrument, knobs, exposure, offline, trace, audio, clock, choreo, fps: () => fps } });
+/**
+ * A print: replays the scripted section up to `at` seconds, renders the last `settle` frames at full print size (so
+ * trails and feedback have history at that size), and saves that moment as library/prints/<name>.png.
+ */
+async function still(o: { name: string; at: number; width?: number; height?: number; fps?: number; settle?: number } & Script) {
+  const { name, at, width: pw = 3840, height: ph = 2160, fps: rate = 30, settle = 12 } = o;
+  running = false;
+  const sw = w;
+  const sh = h;
+  try {
+    await fresh();
+    const total = Math.round(at * rate);
+    for (let i = 0; i <= total; i++) {
+      if (i === Math.max(0, total - settle)) setRes(pw, ph);
+      draw(scripted(i, rate, o));
+      // yield now and then, but never after the last frame: the canvas image is gone once the task ends
+      if (i % 8 === 7 && i < total) await new Promise((r) => setTimeout(r, 0));
+    }
+    const r = await fetch(`/__shiki/still?name=${encodeURIComponent(name)}`, { method: 'POST', body: grab(1, 'image/png') });
+    return { ...(await r.json() as { file: string }), state: instrument.debug?.() };
+  } finally {
+    setRes(sw, sh);
+    running = true;
+    requestAnimationFrame(loop);
+  }
+}
+
+Object.assign(window, { __lab: { renderer, instrument, knobs, exposure, offline, still, trace, audio, clock, choreo, fps: () => fps } });

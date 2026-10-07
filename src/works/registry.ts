@@ -14,7 +14,8 @@ export interface LoadResult {
 
 type Listener = (result: LoadResult) => void;
 
-const loaders = import.meta.glob<{ default: InstrumentModule | GpuInstrumentModule }>('../../works/*/index.ts');
+// Folders starting with `_` (e.g. works/_starter, the Studio template) are not works: keep them out of the bundle too.
+const loaders = import.meta.glob<{ default: InstrumentModule | GpuInstrumentModule }>(['../../works/*/index.ts', '!../../works/_*/index.ts']);
 const artUrls = import.meta.glob<string>('../../works/*/keyvisual.{jpg,png}', { eager: true, query: '?url', import: 'default' });
 
 /** Loads every work in works/<id>/ independently (folders starting with "_" are skipped), sorted by name. */

@@ -63,7 +63,7 @@ export default defineGpuInstrument({
     const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
     let lastKickAge = 99;
     let dropAt = -99;
-    let lastFlash = false;
+    let lastDrops = 0;
     const at = new Vector3();
 
     /** Shots: 0 wide front, 1 low oblique, 2 close drift, 3 impact pull-back, 4 build dolly zoom. */
@@ -106,8 +106,8 @@ export default defineGpuInstrument({
           bandY.value = rnd();
           band.value = 0.5 + m[1] * 0.7;
         } else band.value = Number(band.value) * Math.exp(-dt / 0.18);
-        if (d.flash > 0.95 && !lastFlash) dropAt = s.time;
-        lastFlash = d.flash > 0.95;
+        if (d.drops !== lastDrops) dropAt = s.time;
+        lastDrops = d.drops;
         flood.value = s.time >= dropAt ? Math.exp(-(s.time - dropAt) / 0.9) : 0;
         depth.value = m[0] + (d.phase === 'impact' ? 0.6 : 0);
 
