@@ -18,6 +18,8 @@ general preference (not one specific to a single work). Keep bullets short and c
   dancing locked to the beat; light as an event (random patches on kicks, scan bands, a flood on the drop), never a
   constant glow; a director cutting between the group, skulls, hands and low angles. A single acid-green accent on
   black works here: the "no neon" rule means no neon *cityscape / cyberpunk cliché*, not no saturated light.
+- 2026-10-08 · Liquid, glossy, smooth (ぬるぬる) motion — a mirror membrane like Yoichi Ochiai's null² — with the fractal
+  as its substance (MIZUKAGAMI). Effects that make the brain glitch, not decoration.
 - 2026-10-05 · Dynamic, edited VJ experiences (Alien Dance, AVB2BVA, Lucas Gutierrez) over a still image with a little
   motion; the image is only one part of the experience.
 
@@ -27,5 +29,7 @@ general preference (not one specific to a single work). Keep bullets short and c
   tension → release, inertia, broken expectations), not a level meter.
 - 2026-10-03 · Elements whose purpose cannot be read (MOONSEA v1's particle line: "what is it trying to do?").
 - 2026-10-03 · Prompt-only, "AI-looking", tacky imagery.
+- 2026-10-08 · Old-CG pixel squares as a video look (fine for framed prints: SUBLIMATION). Literal UI props such as
+  nested browser windows and monitors ("ダサい").
 - 2026-10-05 · Cheap particles: identical round glowing sprites stacked additively under heavy bloom (screensaver
   look). Soft "jellyfish" creatures. Glow that stays on all the time.
