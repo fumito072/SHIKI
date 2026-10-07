@@ -68,7 +68,6 @@ const audio = new AudioEngine();
 const tracker = new BeatTracker();
 const choreo = new Choreography();
 let last = performance.now();
-const t0 = performance.now();
 let frameNo = 0;
 
 function live(now: number): LiveSignals {
@@ -98,6 +97,11 @@ let running = true;
 let fps = 60;
 let prevNow = performance.now();
 let lastLive: LiveSignals = { ...SILENT };
+/** World time; stops while frozen so a moment can be framed and printed. */
+let simT = 0;
+let frozen = false;
+let lastSig: Signals = { ...SILENT, time: 0, dt: 1 / 60, frame: 0 };
+let printNote = '';
 function loop(now: number) {
   if (!running) return;
   requestAnimationFrame(loop);
@@ -105,13 +109,19 @@ function loop(now: number) {
   const dt = Math.min(0.1, (now - prevNow) / 1000);
   prevNow = now;
   if (dt > 0) fps += (1 / dt - fps) * 0.05;
-  draw({ ...lastLive, time: (now - t0) / 1000, dt, frame: frameNo++ });
-  hud.textContent = `${mod!.manifest.name}  ${Math.round(fps)} fps  ${w}×${h}  bpm ${lastLive.bpm.toFixed(1)}  tension ${lastLive.tension.toFixed(2)}  drop ${lastLive.drop.toFixed(2)}\nT test track · M mic · SPACE tap · hold B build · ⏎ drop`;
+  if (!frozen) {
+    simT += dt;
+    lastSig = { ...lastLive, time: simT, dt, frame: frameNo++ };
+    draw(lastSig);
+  }
+  hud.textContent = `${mod!.manifest.name}  ${Math.round(fps)} fps  ${w}×${h}  bpm ${lastLive.bpm.toFixed(1)}  tension ${lastLive.tension.toFixed(2)}  drop ${lastLive.drop.toFixed(2)}${frozen ? '  ■ FROZEN' : ''}\nT test track · M mic · SPACE tap · hold B build · ⏎ drop · F freeze · P print 4K · ⇧P print 8K${printNote ? `\n${printNote}` : ''}`;
 }
 requestAnimationFrame(loop);
 
 addEventListener('keydown', (e) => {
-  if (e.key === ' ') { e.preventDefault(); clock.tap(); }
+  if (e.key === 'f' || e.key === 'F') freeze(!frozen);
+  else if (e.key === 'p' || e.key === 'P') void print(e.shiftKey ? { width: 7680, height: 4320 } : {});
+  else if (e.key === ' ') { e.preventDefault(); clock.tap(); }
   else if (e.key === 'Enter') choreo.fire();
   else if (e.key === 'b' || e.key === 'B') choreo.building = true;
   else if (e.key === 't' || e.key === 'T') void audio.useFile('/test/testtrack-128.wav').then(() => tracker.reset());
@@ -212,4 +222,71 @@ async function still(o: { name: string; at: number; width?: number; height?: num
   }
 }
 
-Object.assign(window, { __lab: { renderer, instrument, knobs, exposure, offline, still, trace, audio, clock, choreo, fps: () => fps } });
+// ---------- print mode: freeze a live moment, save it at print size ----------
+function freeze(on: boolean) {
+  frozen = on;
+  printNote = on ? 'FROZEN — P で保存、F で再開' : '';
+}
+
+/** Local time, e.g. 20261008-010857 (sorts by name). */
+const stamp = () => {
+  const d = new Date();
+  const p2 = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
+};
+
+/**
+ * Saves the current live moment as library/prints/<work>/<work>-<time>.png. The world renders a few frames at print
+ * size first (frozen: the same instant; live: the next ~0.15 s), so trails and feedback exist at that size too.
+ */
+async function print(o: { width?: number; height?: number; settle?: number } = {}) {
+  if (!running) return null;
+  const { width: pw = 3840, height: ph = 2160, settle = 10 } = o;
+  running = false;
+  const sw = w;
+  const sh = h;
+  const base = lastSig;
+  printNote = `保存中… ${pw}×${ph}`;
+  hud.textContent += `\n${printNote}`;
+  try {
+    setRes(pw, ph);
+    for (let i = 0; i < settle; i++) {
+      draw(frozen ? { ...base, dt: 1e-4, frame: frameNo++ } : { ...base, time: base.time + i / 60, dt: 1 / 60, frame: frameNo++ });
+    }
+    const id = mod!.manifest.id;
+    const r = await fetch(`/__shiki/still?dir=${id}&name=${id}-${stamp()}`, { method: 'POST', body: grab(1, 'image/png') });
+    const { file } = (await r.json()) as { file: string };
+    printNote = `保存しました: ${file}`;
+    return file;
+  } catch (err) {
+    printNote = `保存できません: ${String(err)}`;
+    return null;
+  } finally {
+    setRes(sw, sh);
+    if (frozen) draw({ ...base, dt: 1e-4, frame: frameNo++ });
+    running = true;
+    requestAnimationFrame(loop);
+  }
+}
+
+// ?print=1 — buttons for the same actions, for printing without the keyboard shortcuts
+if (new URLSearchParams(location.search).get('print')) {
+  const bar = document.createElement('div');
+  bar.style.cssText = 'position:fixed;right:12px;bottom:10px;display:flex;gap:6px';
+  const button = (label: string, fn: () => void) => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.style.cssText = 'font:11px ui-monospace,Menlo,monospace;color:#ece6da;background:rgba(20,20,20,.7);border:1px solid rgba(236,230,218,.35);padding:6px 10px;cursor:pointer';
+    b.onclick = fn;
+    bar.append(b);
+  };
+  button('テスト曲', () => void audio.useFile('/test/testtrack-128.wav').then(() => tracker.reset()));
+  button('マイク', () => void audio.useMic().then(() => tracker.reset()));
+  button('DROP', () => choreo.fire());
+  button('止める / 再開', () => freeze(!frozen));
+  button('4K で保存', () => void print());
+  button('8K で保存', () => void print({ width: 7680, height: 4320 }));
+  document.body.append(bar);
+}
+
+Object.assign(window, { __lab: { renderer, instrument, knobs, exposure, offline, still, print, freeze, trace, audio, clock, choreo, fps: () => fps } });

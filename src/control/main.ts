@@ -348,6 +348,14 @@ const header = h('header', { class: 'topi' },
   ),
   h('div', { class: 'st' },
     h('button', {
+      type: 'button', class: 'btn', title: 'オンエア中の作品を印刷モードで開きます（一時停止して 4K / 8K の静止画を保存）',
+      disabled: engineMode !== 'gpu',
+      onclick: () => {
+        const id = engine.workId(engine.onAir);
+        if (id) window.open(`/lab.html?work=${encodeURIComponent(id)}&print=1`, 'shiki-print');
+      },
+    }, 'PRINT'),
+    h('button', {
       type: 'button', class: 'btn', title: 'WebGPU の世界と、移植前の WebGL の作品を切り替えます（再読み込み）',
       onclick: () => {
         try {

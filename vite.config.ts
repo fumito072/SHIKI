@@ -26,7 +26,7 @@ function nameOf(req: IncomingMessage, fallback: string): string {
  * Dev-only endpoints that let agents look at their own work:
  *   POST /__shiki/snap?name=x  (canvas data URL) → .agents/snaps/x.jpg
  *   POST /__shiki/clip?name=x  (webm blob)       → .agents/clips/x.mp4 + x-sheet.jpg (contact sheet, needs ffmpeg)
- *   POST /__shiki/still?name=x (PNG data URL)    → library/prints/x.png (a full-resolution still, kept as a print)
+ *   POST /__shiki/still?name=x&dir=d (PNG data URL) → library/prints/d/x.png (a full-resolution still, kept as a print)
  */
 function agentEyes(): Plugin {
   return {
@@ -46,7 +46,8 @@ function agentEyes(): Plugin {
       server.middlewares.use('/__shiki/still', async (req, res) => {
         if (req.method !== 'POST') return void res.writeHead(405).end();
         const b64 = (await body(req)).toString().replace(/^data:image\/\w+;base64,/, '');
-        const dir = path('./library/prints');
+        const sub = (new URL(req.url ?? '/', 'http://local').searchParams.get('dir') ?? '').replace(/[^a-z0-9_-]/gi, '-');
+        const dir = path(`./library/prints${sub ? `/${sub}` : ''}`);
         mkdirSync(dir, { recursive: true });
         const file = `${dir}/${nameOf(req, 'still')}.png`;
         writeFileSync(file, Buffer.from(b64, 'base64'));

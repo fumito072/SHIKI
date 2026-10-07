@@ -6,6 +6,7 @@
   "description": "式・色・四季。VJ・リアルタイム映像クリエイターのための道具箱。",
   "scripts": {
     "dev": "vite",
+    "print": "vite --open \"/lab.html?work=sublimation&print=1\"",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
