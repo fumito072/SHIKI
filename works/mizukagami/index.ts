@@ -39,6 +39,11 @@ const manifest: InstrumentManifest = {
 
 /** Where in its stretch a world starts to hand over to the next. */
 const HANDOVER = 0.65;
+const NAMES_JA: Record<string, string> = {
+  mandelbrot: 'マンデルブロ', julia: 'ジュリア', ship: 'バーニングシップ', lyapunov: 'リアプノフ', cantor: 'カントール',
+  sierpinski: 'シェルピンスキー', koch: 'コッホ', takagi: '高木曲線', peano: 'ペアノ曲線', hilbert: 'ヒルベルト曲線',
+  menger: 'メンガーのスポンジ', fern: 'バーンズリーのシダ', romanesco: 'ロマネスコ',
+};
 
 export default defineGpuInstrument({
   manifest,
@@ -98,6 +103,20 @@ export default defineGpuInstrument({
     const lnZ = (i: number) => Math.log(worlds[i].Z);
     const next = (i: number) => (i + 1) % worlds.length;
     const prev = (i: number) => (i + worlds.length - 1) % worlds.length;
+    // the journey as one line: world i starts at offsets[i] (in units of log zoom)
+    const offsets: number[] = [];
+    let total = 0;
+    worlds.forEach((_, i) => {
+      offsets.push(total);
+      total += lnZ(i);
+    });
+    let steered = false;
+    const locate = (pos: number) => {
+      const p = ((pos % total) + total) % total;
+      let i = worlds.length - 1;
+      while (i > 0 && offsets[i] > p) i--;
+      return { i, lnz: p - offsets[i] };
+    };
     if (import.meta.env.DEV) {
       Object.assign(window, {
         __mizu: {
@@ -141,7 +160,7 @@ export default defineGpuInstrument({
         surge *= Math.exp(-dt / 0.35);
         rush *= Math.exp(-dt / 0.9);
         pulse *= Math.exp(-dt / 0.16);
-        const speed = rate + surge + rush;
+        const speed = steered ? 0 : rate + surge + rush;
         lnz += speed * dt;
         while (lnz >= lnZ(cur)) {
           lnz -= lnZ(cur);
@@ -195,6 +214,23 @@ export default defineGpuInstrument({
         pipeline.render();
       },
       debug: () => ({ ...director.current, world: worlds[cur].id, zoom: Math.exp(lnz), speed: rate + surge + rush }),
+      timeline: {
+        length: total,
+        rate: 0.35,
+        position: () => offsets[cur] + lnz,
+        seek(pos: number) {
+          const at = locate(pos);
+          cur = at.i;
+          lnz = at.lnz;
+        },
+        steer(on: boolean) {
+          steered = on;
+        },
+        label(pos: number) {
+          const at = locate(pos);
+          return `${NAMES_JA[worlds[at.i].id] ?? worlds[at.i].label} ${Math.round((at.lnz / lnZ(at.i)) * 100)}%`;
+        },
+      },
       resize(w, h) {
         rtA.setSize(w, h);
         rtB.setSize(w, h);

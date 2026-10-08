@@ -102,6 +102,35 @@ let simT = 0;
 let frozen = false;
 let lastSig: Signals = { ...SILENT, time: 0, dt: 1 / 60, frame: 0 };
 let printNote = '';
+
+// ---------- transport: play, pause, faster, slower, backwards ----------
+/** Playback rate; negative rewinds (only works with a timeline can). Pause is `frozen`. */
+let playRate = 1;
+const RATES = [-4, -2, -1, -0.5, -0.25, 0.25, 0.5, 1, 2, 4];
+const timeline = () => instrument.timeline;
+function setRate(r: number) {
+  playRate = timeline() ? r : Math.max(0.25, r); // without a timeline nothing runs backwards
+  frozen = false;
+  printNote = '';
+}
+function nudgeRate(dir: 1 | -1) {
+  const i = RATES.indexOf(playRate);
+  setRate(RATES[Math.min(RATES.length - 1, Math.max(0, (i < 0 ? RATES.indexOf(1) : i) + dir))]);
+}
+/** One step while paused: along the timeline when the work has one, otherwise forward in time only. */
+function step(seconds: number) {
+  const tl = timeline();
+  if (tl) {
+    tl.steer(true);
+    tl.seek(tl.position() + seconds * tl.rate);
+  } else if (seconds < 0) return;
+  simT += tl ? 0 : seconds;
+  lastSig = { ...lastSig, time: simT, dt: 1e-4, frame: frameNo++ };
+  draw(lastSig);
+}
+const rateText = () => (frozen ? '⏸' : `${playRate < 0 ? '◀' : '▶'} ×${Math.abs(playRate)}`);
+let onTransport: (() => void) | null = null;
+
 function loop(now: number) {
   if (!running) return;
   requestAnimationFrame(loop);
@@ -110,16 +139,34 @@ function loop(now: number) {
   prevNow = now;
   if (dt > 0) fps += (1 / dt - fps) * 0.05;
   if (!frozen) {
-    simT += dt;
-    lastSig = { ...lastLive, time: simT, dt, frame: frameNo++ };
+    const tl = timeline();
+    const natural = playRate === 1;
+    if (tl) {
+      // ×1 forward is the work's own music-driven motion; anything else is the viewer steering the timeline
+      tl.steer(!natural);
+      if (!natural) tl.seek(tl.position() + playRate * dt * tl.rate);
+    }
+    simT += dt * playRate;
+    lastSig = { ...lastLive, time: simT, dt: Math.max(1e-4, dt * Math.abs(playRate)), frame: frameNo++ };
     draw(lastSig);
   }
-  hud.textContent = `${mod!.manifest.name}  ${Math.round(fps)} fps  ${w}×${h}  bpm ${lastLive.bpm.toFixed(1)}  tension ${lastLive.tension.toFixed(2)}  drop ${lastLive.drop.toFixed(2)}${frozen ? '  ■ FROZEN' : ''}\nT test track · M mic · SPACE tap · hold B build · ⏎ drop · F freeze · P print 4K · ⇧P print 8K${printNote ? `\n${printNote}` : ''}`;
+  onTransport?.();
+  const tl = timeline();
+  const where = tl?.label ? `  ${tl.label(tl.position())}` : '';
+  hud.textContent = `${mod!.manifest.name}  ${Math.round(fps)} fps  ${w}×${h}  bpm ${lastLive.bpm.toFixed(1)}  ${rateText()}${where}\nT test track · M mic · SPACE tap · hold B build · ⏎ drop · K pause · J/L slower·back / faster · ←/→ step (⇧ more) · P print 4K · ⇧P 8K${printNote ? `\n${printNote}` : ''}`;
 }
 requestAnimationFrame(loop);
 
 addEventListener('keydown', (e) => {
-  if (e.key === 'f' || e.key === 'F') freeze(!frozen);
+  if ((e.target as HTMLElement | null)?.tagName === 'INPUT') return;
+  if (e.key === 'k' || e.key === 'K' || e.key === 'f' || e.key === 'F') freeze(!frozen);
+  else if (e.key === 'j' || e.key === 'J') nudgeRate(-1);
+  else if (e.key === 'l' || e.key === 'L') nudgeRate(1);
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    if (!frozen) freeze(true);
+    step((e.key === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 2 : 0.1));
+  }
   else if (e.key === 'p' || e.key === 'P') void print(e.shiftKey ? { width: 7680, height: 4320 } : {});
   else if (e.key === ' ') { e.preventDefault(); clock.tap(); }
   else if (e.key === 'Enter') choreo.fire();
@@ -225,21 +272,21 @@ async function still(o: { name: string; at: number; width?: number; height?: num
 // ---------- print mode: freeze a live moment, save it at print size ----------
 function freeze(on: boolean) {
   frozen = on;
-  printNote = on ? 'FROZEN — P で保存、F で再開' : '';
+  printNote = on ? '停止中 — ←/→ で少しずつ動かす、P で保存、K で再開' : '';
 }
 
 /** Local time, e.g. 20261008-010857 (sorts by name). */
 const stamp = () => {
   const d = new Date();
   const p2 = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
+  return `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}${String(d.getMilliseconds()).padStart(3, '0')}`;
 };
 
 /**
  * Saves the current live moment as library/prints/<work>/<work>-<time>.png. The world renders a few frames at print
  * size first (frozen: the same instant; live: the next ~0.15 s), so trails and feedback exist at that size too.
  */
-async function print(o: { width?: number; height?: number; settle?: number } = {}) {
+async function print(o: { width?: number; height?: number; settle?: number; name?: string } = {}) {
   if (!running) return null;
   const { width: pw = 3840, height: ph = 2160, settle = 10 } = o;
   running = false;
@@ -254,7 +301,8 @@ async function print(o: { width?: number; height?: number; settle?: number } = {
       draw(frozen ? { ...base, dt: 1e-4, frame: frameNo++ } : { ...base, time: base.time + i / 60, dt: 1 / 60, frame: frameNo++ });
     }
     const id = mod!.manifest.id;
-    const r = await fetch(`/__shiki/still?dir=${id}&name=${id}-${stamp()}`, { method: 'POST', body: grab(1, 'image/png') });
+    const name = encodeURIComponent(o.name ?? `${id}-${stamp()}`);
+    const r = await fetch(`/__shiki/still?dir=${id}&name=${name}`, { method: 'POST', body: grab(1, 'image/png') });
     const { file } = (await r.json()) as { file: string };
     printNote = `保存しました: ${file}`;
     return file;
@@ -283,10 +331,60 @@ if (new URLSearchParams(location.search).get('print')) {
   button('テスト曲', () => void audio.useFile('/test/testtrack-128.wav').then(() => tracker.reset()));
   button('マイク', () => void audio.useMic().then(() => tracker.reset()));
   button('DROP', () => choreo.fire());
-  button('止める / 再開', () => freeze(!frozen));
   button('4K で保存', () => void print());
   button('8K で保存', () => void print({ width: 7680, height: 4320 }));
   document.body.append(bar);
+
+  // the transport: rewind, pause, play, fast forward, and a slider over the work's timeline when it has one
+  const tbar = document.createElement('div');
+  tbar.style.cssText = 'position:fixed;left:12px;right:12px;top:10px;display:flex;gap:6px;align-items:center;font:11px ui-monospace,Menlo,monospace;color:#ece6da';
+  const tbutton = (label: string, title: string, fn: () => void) => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.title = title;
+    b.style.cssText = 'font:13px ui-monospace,Menlo,monospace;color:#ece6da;background:rgba(20,20,20,.7);border:1px solid rgba(236,230,218,.35);padding:5px 10px;cursor:pointer;min-width:38px';
+    b.onclick = fn;
+    tbar.append(b);
+    return b;
+  };
+  const back4 = tbutton('⏪', '早戻し（J）', () => setRate(-4));
+  const back1 = tbutton('◀', '戻す', () => setRate(-1));
+  tbutton('⏸', '止める / 再開（K）', () => freeze(!frozen));
+  tbutton('▶', '再生', () => setRate(1));
+  tbutton('⏩', '早送り（L）', () => setRate(4));
+  const rateEl = document.createElement('span');
+  rateEl.style.cssText = 'min-width:64px;text-align:center;opacity:.85';
+  tbar.append(rateEl);
+  const slider = document.createElement('input');
+  slider.type = 'range';
+  slider.min = '0';
+  slider.max = '10000';
+  slider.style.cssText = 'flex:1;accent-color:#ece6da';
+  const placeEl = document.createElement('span');
+  placeEl.style.cssText = 'min-width:170px;opacity:.85';
+  tbar.append(slider, placeEl);
+  let dragging = false;
+  slider.addEventListener('pointerdown', () => (dragging = true));
+  slider.addEventListener('pointerup', () => (dragging = false));
+  slider.addEventListener('input', () => {
+    const tl = timeline();
+    if (!tl) return;
+    tl.steer(true);
+    tl.seek((Number(slider.value) / 10000) * tl.length);
+    if (frozen) step(0);
+  });
+  document.body.append(tbar);
+  onTransport = () => {
+    const tl = timeline();
+    rateEl.textContent = rateText();
+    back4.disabled = back1.disabled = !tl;
+    slider.style.visibility = placeEl.style.visibility = tl ? 'visible' : 'hidden';
+    if (tl) {
+      const pos = ((tl.position() % tl.length) + tl.length) % tl.length;
+      if (!dragging) slider.value = String(Math.round((pos / tl.length) * 10000));
+      placeEl.textContent = tl.label?.(pos) ?? '';
+    }
+  };
 }
 
-Object.assign(window, { __lab: { renderer, instrument, knobs, exposure, offline, still, print, freeze, trace, audio, clock, choreo, fps: () => fps } });
+Object.assign(window, { __lab: { renderer, instrument, knobs, exposure, offline, still, print, freeze, setRate, step, trace, audio, clock, choreo, fps: () => fps } });
