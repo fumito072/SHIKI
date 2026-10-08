@@ -27,6 +27,10 @@ Accent per director style: acid green, oil-slick violet, cold blue, white gold (
   「ブラウザダサいからやめよう。ただ水の感じとかはいいからそういう表現をフラクタルと掛け合わせて頭がバグる映像体験を作りたい」.
   Browser/monitor levels removed; the liquid mirror stays and the recursion became the fractal's own self-similarity.
 
+- 2026-10-08 · 「水はダサいから水一度取り外そう」 → removed the kick ripples, the drop windows (Julia rings), the rolling
+  waves and the membrane wobble. Kicks now flash the rims instead (Pulse knob). Kept: the endless dive, the build's
+  dead stop, the drop's fold and figure/ground swap, the metal rims.
+
 ## Next
 
 - The inverted (inside-lit) state is brief and could be richer.
