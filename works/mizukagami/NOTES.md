@@ -31,6 +31,18 @@ Accent per director style: acid green, oil-slick violet, cold blue, white gold (
   waves and the membrane wobble. Kicks now flash the rims instead (Pulse knob). Kept: the endless dive, the build's
   dead stop, the drop's fold and figure/ground swap, the metal rims.
 
+- 2026-10-08 · 「DROPの灰色の光は弱めて」「フラクタルの中に入っていく…マンデルブロからカントール集合、シェルピンスキー、コッホ、
+  ペアノ、高木、ヒルベルト、マンデルブロ、ジュリア、メンガー、ロマネスコ、バーニングシップ、リアプノフ、バーンズリーのシダ…
+  どんどん現れる映像にして、入りながら色とかも変化していく」 → rebuilt as a descent through thirteen worlds
+  (works/mizukagami/fractals.ts): Mandelbrot → Julia → Burning Ship → Lyapunov → Cantor dust → Sierpinski → Koch →
+  Takagi → Peano → Hilbert → Menger (ray-marched) → Barnsley fern (chaos game) → Romanesco (phyllotaxis) → Mandelbrot.
+  Each world dives at its own point (self-similar where exact: Cantor at (¼,¼) ×9, Sierpinski at (2A+B)/3 ×4,
+  Peano centre ×9, Menger corner ×3, fern tip ×1/0.85); in the last 35 % of its stretch the next world opens from the
+  centre with a ragged rim; colours change with the worlds. Drop flash cut to 0.06.
+- Escape-time worlds are drawn as thin inward-flowing bands of escape time plus a faint edge: drawn as distance-field
+  lines, deep views are so dense that the screen whites out. The derivative is kept scaled (log scale) so it never
+  overflows float32.
+
 ## Next
 
 - The inverted (inside-lit) state is brief and could be richer.
